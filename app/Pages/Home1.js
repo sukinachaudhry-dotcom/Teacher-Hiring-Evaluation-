@@ -65,7 +65,6 @@ export default function App({ navigation }) {
 
 
                 <TouchableOpacity onPress={() => {
-                    alert ('settings clicked');
   // navigate to Settings defined in the parent StudentStack
   navigation.getParent()?.navigate('Settings');
 }} >

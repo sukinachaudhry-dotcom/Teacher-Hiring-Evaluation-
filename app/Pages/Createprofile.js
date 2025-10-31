@@ -81,20 +81,18 @@ const TeacherProfile = ({ navigation }) => {
   const dispatch = useDispatch();
 
   const goToRegister = async () => {
+    try {
+      // show raw typed value and type
+      console.log("Createprofile.goToRegister - raw email:", typeof email, `"${email}"`);
 
+      // normalize email before sending to Firebase
+      const emailTrim = (email || "").toString().trim().toLowerCase();
+      console.log("Createprofile.goToRegister - trimmed email:", `"${emailTrim}"`);
 
-
-    // if(experience == ""){
-    //   alert ("Please fill all information");
-    //   return
-    // }
-
-
-
-    navigation.navigate("Docs", {
-      data: {
+      const payload = {
+        role: "Teacher",
         name,
-        email,
+        email: emailTrim,
         password,
         confirmpassword,
         highestqualification,
@@ -103,33 +101,29 @@ const TeacherProfile = ({ navigation }) => {
         experience,
         teachingsubjects,
         location,
+      };
+      console.log("Createprofile.goToRegister - payload:", JSON.stringify(payload));
+
+      // navigate with normalized payload
+      
+      const user = await handleSignUp(
+        emailTrim,
+        password,
+        payload
+      );
+      
+      navigation.navigate("Docs", { data: payload });
+      console.log("handleSignUp result:", user);
+      if (user?.uid) {
+        dispatch(setRole("Teacher"));
+        dispatch(setUser(user));
+      } else {
+        console.log("Signup returned no uid:", user);
+        alert("Error in sign up");
       }
-    })
-
-    
-
-    
-    const user = await handleSignUp(name, email, password, confirmpassword, highestqualification, preferredteachinglevel, preferredteachingtype, experience, teachingsubjects, location, {
-
-      role: "Teacher",
-      name,
-      email,
-      password,
-      confirmpassword,
-      highestqualification,
-      preferredteachinglevel,
-      preferredteachingtype,
-      experience,
-      teachingsubjects,
-      location,
-    });
-
-    if (user?.uid) {
-      dispatch(setRole("Teacher"));
-      dispatch(setUser(user));
-
-    } else {
-      alert("Error in sign up");
+    } catch (err) {
+      console.error("Error signing up:", err);
+      alert(err?.message || "Signup failed");
     }
   };
 
@@ -230,6 +224,8 @@ const TeacherProfile = ({ navigation }) => {
             placeholder="Enter Email"
             placeholderTextColor="#999"
             style={{ flex: 1, height: 40, color: "#333", marginLeft: 8 }}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
         </View>
 

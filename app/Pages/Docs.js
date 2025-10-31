@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { handleSignUp } from "../Helper/firebaseHelper";
+import { addUserDetails } from "../Helper/firebaseHelper";
 import { setRole, setUser } from "../Redux/Slices/HomeDataSlice";
 import { Dropdown } from "react-native-element-dropdown";
 import { useDispatch } from "react-redux";
@@ -51,23 +51,26 @@ const Docs = ({ navigation, route }) => {
 
     
     
-    const user = await handleSignUp(data.email, data.password, {
+    try {
+      // never store raw password here; exclude auth secrets
+      const { password, confirmpassword, ...safeData } = data || {};
+      const payload = {
+        role: "Teacher",
+        ...safeData,
+        resume,
+        certificates,
+        availability,
+        languageknown,
+        introduction,
+      };
 
-      role: "Teacher",
-      ...data,
-      resume,
-      certificates,
-      availability,
-      languageknown,
-      introduction,
-
-    });
-
-    if (user?.uid) {
+      await addUserDetails(payload);
       dispatch(setRole("Teacher"));
-      dispatch(setUser(user));
-    } else {
-      alert("Error in sign up");
+      // user is already in Redux from Createprofile; keep it as is
+      alert("✅ Profile details saved successfully");
+      navigation.navigate("Home1");
+    } catch (e) {
+      alert(e?.message || "Failed to save details");
     }
   }
 

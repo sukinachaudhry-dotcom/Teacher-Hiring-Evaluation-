@@ -59,7 +59,7 @@ const Stack = createNativeStackNavigator();
 
 
 const TeacherStack = () => (
-  <Stack.Navigator initialRouteName="StuBottomTab">
+  <Stack.Navigator initialRouteName="BottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />/ */}
     <Stack.Screen name="Submitted" component={Submitted} />
@@ -111,7 +111,7 @@ const TeacherStack = () => (
 );
 
 const StudentStack = () => (
-  <Stack.Navigator initialRouteName="StuBottomTab">
+  <Stack.Navigator initialRouteName="BottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}
@@ -119,7 +119,6 @@ const StudentStack = () => (
     <Stack.Screen name="Role" component={Role} />
     <Stack.Screen name="StudentProfile" component={StudentProfile} />
     <Stack.Screen name="StudentSignup" component={StudentSignup} />
-    <Stack.Screen name="BottomTab" component={BottomTab} />
     <Stack.Screen name="Viewjobdetail" component={Viewjobdetail} />
     <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
     <Stack.Screen name="Applicants" component={Applicants} />
@@ -144,12 +143,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
     <Stack.Screen name="Applicants" component={Applicants} />
         <Stack.Screen name="Postjob" component={Postjob} />
-
-
-
     <Stack.Screen name="Chat" component={ChatScreen} />
-
-
     <Stack.Screen name="InstJobs" component={InstJobs} />
 
 

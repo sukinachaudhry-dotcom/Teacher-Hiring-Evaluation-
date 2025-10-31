@@ -1,5 +1,5 @@
 // firestoreService.js
-import {createUserWithEmailAndPassword,sendPasswordResetEmail,signInWithEmailAndPassword,signOut} from "firebase/auth";
+import {getAuth, createUserWithEmailAndPassword,sendPasswordResetEmail,signInWithEmailAndPassword,signOut} from "firebase/auth";
 import {addDoc, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc} from 'firebase/firestore';
 import { auth, db } from '../../firebase'; // make sure you export both db and auth in firebase.js
 
@@ -75,28 +75,32 @@ export const deleteData = async (collectionName, id) => {
 //--------------------------------
 
 // ✅ Sign Up
-export const handleSignUp = async (email, password, extraData = {}) => {
-    try {
-     
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+export async function handleSignUp(email, password, extraData = {}) {
+  console.log("handleSignUp called - types/values:", {
+    emailType: typeof email,
+    emailValue: `"${email}"`,
+    passwordType: typeof password,
+    passwordValue: !!password ? "[REDACTED]" : password,
+    extraData,
+  });
 
+  const emailTrim = (email || "").toString().trim().toLowerCase();
+  if (!emailTrim || typeof password !== "string" || password.length < 6) {
+    const err = new Error("Invalid email or password before Firebase call");
+    console.error(err);
+    throw err;
+  }
 
-        const userData = {
-            uid: user.uid,
-            email: user.email,
-            createdAt: new Date().toISOString(),
-            ...extraData, // merge additional data (e.g. name, phone, etc.)
-        };
-
-        
-        await setDoc(doc(db, "users", user.uid), userData);
-
-        return userData;
-    } catch (error) {
-        console.error("Error signing up:", error.message);
-        throw error;
-    }
+  try {
+    const auth = getAuth();
+    const userCredential = await createUserWithEmailAndPassword(auth, emailTrim, password);
+    console.log("Firebase signup success:", userCredential.user?.uid);
+    // save extraData to Firestore/Realtime DB here if needed
+    return userCredential.user;
+  } catch (err) {
+    console.error("Firebase createUserWithEmailAndPassword error:", err);
+    throw err;
+  }
 };
 
 // ✅ Login
@@ -165,6 +169,30 @@ export const uploadImageToCloudinary = async (imageUri) => {
         throw err;
     }
 };
+
+
+// ✅ Save or update additional user details (uses addDoc)
+export async function addUserDetails(extraData = {}) {
+  try {
+    const authInstance = getAuth();
+    const uid = authInstance.currentUser?.uid;
+    if (!uid) {
+      throw new Error("No authenticated user. Please sign in first.");
+    }
+
+    const payload = {
+      uid,
+      ...extraData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const docId = await addData("users", payload);
+    return { docId, uid };
+  } catch (err) {
+    console.error("addUserDetails error:", err);
+    throw err;
+  }
+}
 
 
 
