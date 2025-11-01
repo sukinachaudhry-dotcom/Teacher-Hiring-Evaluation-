@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { addUserDetails } from "../Helper/firebaseHelper";
+import { addUserDetails, uploadImageToCloudinary } from "../Helper/firebaseHelper";
 import { setRole, setUser } from "../Redux/Slices/HomeDataSlice";
 import { Dropdown } from "react-native-element-dropdown";
 import { useDispatch } from "react-redux";
@@ -36,6 +37,42 @@ const Docs = ({ navigation, route }) => {
 
   ];
 
+
+  const handlePickResume = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType,
+        allowsEditing: true,
+        quality: 1,
+      });
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        const uploadedUrl = await uploadImageToCloudinary(imageUri);
+        setResume(uploadedUrl);
+        alert("Resume uploaded");
+      }
+    } catch (err) {
+      alert("Failed to upload resume");
+    }
+  };
+
+  const handlePickCertificate = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType,
+        allowsEditing: true,
+        quality: 1,
+      });
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        const uploadedUrl = await uploadImageToCloudinary(imageUri);
+        setCertificates(uploadedUrl);
+        alert("Certificate uploaded");
+      }
+    } catch (err) {
+      alert("Failed to upload certificate");
+    }
+  };
 
   const compltSignUp = async () => {
     // console.log({
@@ -97,7 +134,7 @@ const Docs = ({ navigation, route }) => {
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Resume / CV</Text>
         <View style={{ flexDirection: "row", marginBottom: 15 }}>
           <TouchableOpacity
-            onPress={() => console.log("Upload Document clicked")}
+            onPress={handlePickResume}
             style={{
               flex: 1,
               backgroundColor: "#d8b4e2",
@@ -140,7 +177,16 @@ const Docs = ({ navigation, route }) => {
           placeholderTextColor: "#999",
         }}>
           <Ionicons name="medal-outline" size={20} color="purple" />
-          <TextInput onChangeText={(e) => setCertificates(e)} placeholder="No File Chosen" style={{ flex: 1, color: "#999", marginLeft: 8 }} />
+          <TextInput
+            value={certificates}
+            placeholder="No File Chosen"
+            placeholderTextColor="#999"
+            editable={false}
+            style={{ flex: 1, color: "#999", marginLeft: 8 }}
+          />
+          <TouchableOpacity onPress={handlePickCertificate} style={{ marginLeft: 8 }}>
+            <Ionicons name="cloud-upload-outline" size={22} color="purple" />
+          </TouchableOpacity>
         </View>
 
         {/* Availability */}

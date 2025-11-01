@@ -29,7 +29,7 @@ import StudentProfile from './Pages/StudentProfile';
 import StudentSignup from './Pages/StudentSignup';
 import InstitutionProfile from './Pages/InstitutionProfile';
 import InstBrowse from './Pages/InstBrowse';
-import ChatScreen from './Pages/Chat';
+// import ChatScreen from './Pages/Chat';
 import ClgJobs from './Pages/ClgJobs';
 import TuitionJobs from './Pages/TuitionJobs';
 import CoursesJobs from './Pages/CoursesJobs';
@@ -89,7 +89,7 @@ const TeacherStack = () => (
     <Stack.Screen name="StudentSignup" component={StudentSignup} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfile} />
     <Stack.Screen name="InstBrowse" component={InstBrowse} />
-    <Stack.Screen name="Chat" component={ChatScreen} />
+    {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
     <Stack.Screen name="ViewDetails" component={ViewDetails} />
     <Stack.Screen name="Accept" component={Accept} />
     <Stack.Screen name="Reject" component={Reject} />
@@ -125,12 +125,12 @@ const StudentStack = () => (
     <Stack.Screen name="StuBottomTab" component={StuBottomTab} />
     <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
 
-    <Stack.Screen name="Chat" component={ChatScreen} />
+    {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
   </Stack.Navigator>
 );
 
 const InstitutionStack = () => (
-  <Stack.Navigator initialRouteName="InstBottomTab">
+  <Stack.Navigator initialRouteName="BottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}
@@ -143,7 +143,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
     <Stack.Screen name="Applicants" component={Applicants} />
         <Stack.Screen name="Postjob" component={Postjob} />
-    <Stack.Screen name="Chat" component={ChatScreen} />
+    {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
     <Stack.Screen name="InstJobs" component={InstJobs} />
 
 

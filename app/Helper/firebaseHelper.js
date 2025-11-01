@@ -94,8 +94,23 @@ export async function handleSignUp(email, password, extraData = {}) {
   try {
     const auth = getAuth();
     const userCredential = await createUserWithEmailAndPassword(auth, emailTrim, password);
-    console.log("Firebase signup success:", userCredential.user?.uid);
-    // save extraData to Firestore/Realtime DB here if needed
+    const uid = userCredential.user?.uid;
+    console.log("Firebase signup success:", uid);
+
+    // Prepare profile payload (do not store plaintext password)
+    const { password: _omitPassword, ...cleanExtra } = extraData || {};
+    const payload = {
+      uid,
+      ...cleanExtra,
+      email: emailTrim,
+      createdAt: cleanExtra?.createdAt || new Date().toISOString(),
+    };
+
+    // Persist to Firestore with uid as document id
+    if (uid) {
+      await setDoc(doc(db, "users", uid), payload, { merge: true });
+    }
+
     return userCredential.user;
   } catch (err) {
     console.error("Firebase createUserWithEmailAndPassword error:", err);
@@ -154,7 +169,7 @@ export const uploadImageToCloudinary = async (imageUri) => {
         data.append("upload_preset", UPLOAD_PRESET);
 
         const res = await fetch(
-           ` https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+           `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
             {
                 method: "POST",
                 body: data,

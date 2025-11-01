@@ -9,11 +9,12 @@ const { width } = Dimensions.get("window");
 
 
 export default function App({ navigation }) {
-   const images = [
+   const defaultImages = [
   "https://images.pexels.com/photos/4144222/pexels-photo-4144222.jpeg", 
   "https://images.pexels.com/photos/5212335/pexels-photo-5212335.jpeg", 
   "https://images.pexels.com/photos/3059748/pexels-photo-3059748.jpeg", 
 ];
+   const [carouselImages, setCarouselImages] = useState([]);
 
     const [data, setData] = useState([]);
     const getDataFromDatabase = async () => {
@@ -25,8 +26,20 @@ export default function App({ navigation }) {
         setData(cData)
 
     };
+    const getCarouselFromDb = async () => {
+        try {
+            const items = await getAllData("homeCarousel");
+            const active = (items || []).filter(i => i?.active !== false);
+            const sorted = active.sort((a,b) => (a?.order||0) - (b?.order||0));
+            const urls = sorted.map(i => i?.url).filter(Boolean);
+            setCarouselImages(urls);
+        } catch (e) {
+            setCarouselImages([]);
+        }
+    };
     useEffect(() => {
         getDataFromDatabase();
+        getCarouselFromDb();
     }, [])
 
     return (
@@ -78,7 +91,7 @@ export default function App({ navigation }) {
                     width={width}
                     height={150}
                     autoPlay={true}
-                    data={images}
+                    data={carouselImages.length ? carouselImages : defaultImages}
                     scrollAnimationDuration={1000}
                     renderItem={({ item }) => (
                         <Image
