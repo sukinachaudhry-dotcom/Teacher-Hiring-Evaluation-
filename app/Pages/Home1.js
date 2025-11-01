@@ -46,7 +46,7 @@ export default function App({ navigation }) {
         // Subscribe to Institution Jobs (school/college) real-time
         const q = query(
             collection(db, 'institutionJobs'),
-            where('institutionType', 'in', ['school', 'college'])
+            where('institutionType', 'in', ['school', 'college', 'undergraduate', 'postgraduate'])
         );
         const unsub = onSnapshot(q, (snap) => {
             const list = [];
