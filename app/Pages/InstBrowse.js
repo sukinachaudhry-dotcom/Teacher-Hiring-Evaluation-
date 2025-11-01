@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Image } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../firebase";
 
 export default function InstBrowse({ navigation }) {
@@ -18,8 +18,7 @@ export default function InstBrowse({ navigation }) {
     }
     const q = query(
       collection(db, "institutionJobs"),
-      ...filters,
-      orderBy("createdAt", "desc")
+      ...filters
     );
     const unsub = onSnapshot(q, (snap) => {
       const list = [];
