@@ -33,7 +33,7 @@ export default function TuitionJobs({ navigation }) {
   }, [modeFilter]);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#fff", padding: 10 }}>
+    <ScrollView style={{ backgroundColor: "#fff" }}>
      {/* Header */}
                 <View
                   style={{
@@ -82,27 +82,27 @@ export default function TuitionJobs({ navigation }) {
                 </ScrollView> */}
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
-                  <View style={{ flexDirection: "row" }}>
+                  <View style={{ flexDirection: "row", paddingHorizontal: 10 }}>
                     <TouchableOpacity onPress={() => setModeFilter("all")}
-                      style={{ backgroundColor: modeFilter === "all" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginLeft: 5 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "bold", color: modeFilter === "all" ? "white" : "purple", marginHorizontal: 8 }}>All</Text>
+                      style={{ backgroundColor: modeFilter === "all" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
+                      <Text style={{ color: modeFilter === "all" ? "#fff" : "purple", fontWeight: "bold" }}>All</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setModeFilter("inperson")}
-                      style={{ backgroundColor: modeFilter === "inperson" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginLeft: 5 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "bold", color: modeFilter === "inperson" ? "white" : "purple", marginHorizontal: 8 }}>In-person</Text>
+                      style={{ backgroundColor: modeFilter === "inperson" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
+                      <Text style={{ color: modeFilter === "inperson" ? "#fff" : "purple", fontWeight: "bold" }}>In-person</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setModeFilter("online")}
-                      style={{ backgroundColor: modeFilter === "online" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginLeft: 5 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "bold", color: modeFilter === "online" ? "white" : "purple", marginHorizontal: 8 }}>Online</Text>
+                      style={{ backgroundColor: modeFilter === "online" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
+                      <Text style={{ color: modeFilter === "online" ? "#fff" : "purple", fontWeight: "bold" }}>Online</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setModeFilter("hybrid")}
-                      style={{ backgroundColor: modeFilter === "hybrid" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginLeft: 5 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "bold", color: modeFilter === "hybrid" ? "white" : "purple", marginHorizontal: 8 }}>Hybrid</Text>
+                      style={{ backgroundColor: modeFilter === "hybrid" ? "purple" : "#eee", padding: 10, borderRadius: 20 }}>
+                      <Text style={{ color: modeFilter === "hybrid" ? "#fff" : "purple", fontWeight: "bold" }}>Hybrid</Text>
                     </TouchableOpacity>
                   </View>
                 </ScrollView>
 
-      {/* Jobs Container */}
+      {/* Jobs List */}
       <View style={{ marginVertical: 10, paddingHorizontal: 10 }}>
         {loading ? (
           <Text style={{ textAlign: "center", marginTop: 20 }}>Loading...</Text>
@@ -110,7 +110,18 @@ export default function TuitionJobs({ navigation }) {
           <Text style={{ textAlign: "center", marginTop: 20 }}>No student profiles yet.</Text>
         ) : (
           students.map((s) => (
-            <View key={s.id} style={{ backgroundColor: "#d8b4e2", padding: 15, borderRadius: 10, marginBottom: 15 }}>
+            <View key={s.id} style={{
+              backgroundColor: "#d8b4e2",
+              borderRadius: 10,
+              padding: 15,
+              marginBottom: 15,
+              shadowColor: "#000",
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+              borderWidth: 2,
+              borderColor: "purple"
+            }}>
               <Text style={{ fontWeight: "bold", fontSize: 16 }}>{s.fullname || "Student"}</Text>
               <Text>{s.address || ""}</Text>
               <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>

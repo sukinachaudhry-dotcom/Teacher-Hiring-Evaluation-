@@ -7,29 +7,117 @@ import { db } from "../../firebase";
 export default function InstBrowse({ navigation }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState("all"); // all | school | college
+  const [typeFilter, setTypeFilter] = useState("all"); // all | school | college | university
 
   useEffect(() => {
-    const filters = [];
-    if (typeFilter !== "all") {
-      filters.push(where("institutionType", "==", typeFilter));
+    setLoading(true);
+    let unsubs = [];
+    let instList = [];
+    let uniStudentList = [];
+
+    if (typeFilter === "university") {
+      const qInst = query(
+        collection(db, "institutionJobs"),
+        where("institutionType", "==", "university")
+      );
+      const u1 = onSnapshot(qInst, (snap) => {
+        instList = [];
+        snap.forEach((d) => {
+          const j = d.data();
+          instList.push({
+            id: `inst_${d.id}`,
+            title: j.title || "Teaching Job",
+            institutionName: j.institutionName || "",
+            city: j.city || "",
+            address: j.address || "",
+            classLevel: j.classLevel || j.grade || "",
+            salary: j.salary || "",
+          });
+        });
+        setJobs([...
+          instList,
+          ...uniStudentList
+        ]);
+        setLoading(false);
+      }, () => {
+        instList = [];
+        setJobs([...
+          instList,
+          ...uniStudentList
+        ]);
+        setLoading(false);
+      });
+
+      const qStu = query(
+        collection(db, "users"),
+        where("role", "==", "Student"),
+        where("profileCompleted", "==", true),
+        where("modeofteaching", "in", ["inperson", "online", "hybrid"]),
+        where("selectclass", "in", ["Undergraduate", "Postgraduate"])
+      );
+      const u2 = onSnapshot(qStu, (snap) => {
+        uniStudentList = [];
+        snap.forEach((d) => {
+          const s = d.data();
+          uniStudentList.push({
+            id: `stu_${d.id}`,
+            title: s.subjects ? `${s.subjects} Tutor Needed` : "University Level Tuition",
+            institutionName: "",
+            city: "",
+            address: s.address || "",
+            classLevel: s.selectclass || "",
+            salary: s.expectedFee || "",
+          });
+        });
+        setJobs([...
+          instList,
+          ...uniStudentList
+        ]);
+        setLoading(false);
+      }, () => {
+        uniStudentList = [];
+        setJobs([...
+          instList,
+          ...uniStudentList
+        ]);
+        setLoading(false);
+      });
+
+      unsubs = [u1, u2];
     } else {
-      filters.push(where("institutionType", "in", ["school", "college"]));
+      const filters = [];
+      if (typeFilter !== "all") {
+        filters.push(where("institutionType", "==", typeFilter));
+      } else {
+        filters.push(where("institutionType", "in", ["school", "college", "university"]));
+      }
+      const q = query(collection(db, "institutionJobs"), ...filters);
+      const u = onSnapshot(q, (snap) => {
+        const list = [];
+        snap.forEach((d) => {
+          const j = d.data();
+          list.push({
+            id: d.id,
+            title: j.title || "Teaching Job",
+            institutionName: j.institutionName || "",
+            city: j.city || "",
+            address: j.address || "",
+            classLevel: j.classLevel || j.grade || "",
+            salary: j.salary || "",
+          });
+        });
+        setJobs(list);
+        setLoading(false);
+      }, () => {
+        setJobs([]);
+        setLoading(false);
+      });
+      unsubs = [u];
     }
-    const q = query(
-      collection(db, "institutionJobs"),
-      ...filters
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      const list = [];
-      snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
-      setJobs(list);
-      setLoading(false);
-    }, () => {
-      setJobs([]);
-      setLoading(false);
-    });
-    return () => unsub();
+
+    return () => {
+      unsubs.forEach((fn) => fn && fn());
+    };
   }, [typeFilter]);
 
   return (
@@ -60,7 +148,7 @@ export default function InstBrowse({ navigation }) {
           }}
         />
       </View>
-     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
+     {/* <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
   <View style={{ flexDirection: "row" }}>
     <TouchableOpacity onPress={() => navigation.navigate("InstBrowse")}
               style={{ backgroundColor: "purple", padding: 15, borderRadius: 50,  marginLeft: 5 }}>
@@ -72,9 +160,9 @@ export default function InstBrowse({ navigation }) {
     </TouchableOpacity>
     
   </View>
-</ScrollView>
+</ScrollView> */}
 
-     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: -5 }}>
+     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
        <View style={{ flexDirection: "row", paddingHorizontal: 10 }}>
          <TouchableOpacity onPress={() => setTypeFilter("all")} style={{ backgroundColor: typeFilter === "all" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
            <Text style={{ color: typeFilter === "all" ? "#fff" : "purple", fontWeight: "bold" }}>All</Text>
@@ -84,6 +172,9 @@ export default function InstBrowse({ navigation }) {
          </TouchableOpacity>
          <TouchableOpacity onPress={() => setTypeFilter("college")} style={{ backgroundColor: typeFilter === "college" ? "purple" : "#eee", padding: 10, borderRadius: 20 }}>
            <Text style={{ color: typeFilter === "college" ? "#fff" : "purple", fontWeight: "bold" }}>College</Text>
+         </TouchableOpacity>
+         <TouchableOpacity onPress={() => setTypeFilter("university")} style={{ backgroundColor: typeFilter === "university" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginLeft: 8 }}>
+           <Text style={{ color: typeFilter === "university" ? "#fff" : "purple", fontWeight: "bold" }}>University</Text>
          </TouchableOpacity>
        </View>
      </ScrollView>

@@ -20,6 +20,7 @@ export default function App({ navigation }) {
 
     const [data, setData] = useState([]);
     const [instJobs, setInstJobs] = useState([]);
+    const [privateJobs, setPrivateJobs] = useState([]);
     const getDataFromDatabase = async () => {
 
         const cData = await getAllData("categories");  // Firestore se data fetch
@@ -48,12 +49,68 @@ export default function App({ navigation }) {
             collection(db, 'institutionJobs'),
             where('institutionType', 'in', ['school', 'college', 'undergraduate', 'postgraduate'])
         );
-        const unsub = onSnapshot(q, (snap) => {
+        const unsubInst = onSnapshot(q, (snap) => {
             const list = [];
             snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
             setInstJobs(list);
         }, () => setInstJobs([]));
-        return () => unsub();
+
+        // Subscribe to Private Jobs (students + course-specific institution jobs)
+        let studentList = [];
+        let courseList = [];
+        const studentsQ = query(
+            collection(db, 'users'),
+            where('role', '==', 'Student'),
+            where('profileCompleted', '==', true),
+            where('modeofteaching', 'in', ['inperson', 'online', 'hybrid'])
+        );
+        const courseJobsQ = query(
+            collection(db, 'institutionJobs'),
+            where('course', '==', true)
+        );
+        const unsubStudents = onSnapshot(studentsQ, (snap) => {
+            studentList = [];
+            snap.forEach((d) => {
+                const s = d.data();
+                studentList.push({
+                    id: `stu_${d.id}`,
+                    title: s.subjects ? `${s.subjects} Tutor Needed` : 'Home Tuition',
+                    subtitle: s.address || '',
+                    classLevel: s.selectclass || '',
+                    salary: s.expectedFee || '',
+                    mode: s.modeofteaching || '',
+                });
+            });
+            setPrivateJobs([...
+                courseList,
+                ...studentList
+            ]);
+        }, () => setPrivateJobs([...courseList]));
+
+        const unsubCourse = onSnapshot(courseJobsQ, (snap) => {
+            courseList = [];
+            snap.forEach((d) => {
+                const j = d.data();
+                courseList.push({
+                    id: `course_${d.id}`,
+                    title: j.title || 'Course Instructor Required',
+                    subtitle: j.institutionName || j.city || j.address || '',
+                    classLevel: j.classLevel || j.grade || '',
+                    salary: j.salary || '',
+                    mode: j.mode || j.modeofteaching || '',
+                });
+            });
+            setPrivateJobs([...
+                courseList,
+                ...studentList
+            ]);
+        }, () => setPrivateJobs([...studentList]));
+
+        return () => {
+            unsubInst();
+            unsubStudents();
+            unsubCourse();
+        };
     }, [])
 
     return (
@@ -129,7 +186,9 @@ export default function App({ navigation }) {
                     <TouchableOpacity onPress={() => {
                         const title = (item?.title || "").toString();
                         const normalized = title.trim().toLowerCase();
-                        if (normalized === "home tuition" || normalized.includes("home") && normalized.includes("tuition")) {
+                        if (normalized === "all") {
+                            navigation.navigate("PrivBrowse");
+                        } else if (normalized === "home tuition" || normalized.includes("home") && normalized.includes("tuition")) {
                             navigation.navigate("TuitionJobs");
                         } else {
                             navigation.navigate("InstBrowse");
@@ -225,207 +284,65 @@ export default function App({ navigation }) {
                     ))
                 )}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 20 }}>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Private Jobs</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate("PrivBrowse")} >
-                        <Text style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
-                    </TouchableOpacity>
                 </View>
-                {/* Home Tuition Job Card */}
-                <View style={{
-                    backgroundColor: "#d8b4e2",
-                    borderRadius: 10,
-                    padding: 15,
-                    marginBottom: 15,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3,
-                    borderWidth: 2,
-                    borderColor: "purple"
-                }}>
-                    <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>
-                        Home Tuition Required for Student
-                    </Text>
-                    <Text>Haya from Karachi</Text>
-                    <View style={{ width: 5, height: 5, borderRadius: 10, marginLeft: 110 }}>
-                        <Image
-                            source={require("./School2.jpeg")} // Home tuition institute/student image
-                            style={{ width: 80, height: 80, borderRadius: 10, marginLeft: 100, marginTop: -25 }}
-                        />
-                    </View>
-
-                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                        <Ionicons name="time-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                        <Text>30 min ago</Text>
-                    </View>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                        <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                        <Text>Class: 8th</Text>
-                    </View>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                        <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                        <Text>Rs. 25,000</Text>
-                    </View>
-                    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                        <MaterialCommunityIcons name="briefcase-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                        <Text>Experience: 3 years</Text>
-                    </View>
-
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
-                        <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}>
-                            <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Details</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate("Chat")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}>
-                            <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                </View>
-                <View
-                    style={{
-                        backgroundColor: "#d8b4e2",
-                        borderRadius: 10,
-                        padding: 15,
-                        marginBottom: 15,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                        borderWidth: 2,
-                        borderColor: "purple",
-                    }}
-                >
-                    {/* Course Title */}
-                    <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>
-                        Web Development Course Tutor Required
-                    </Text>
-                    <Text>Skill Academy, Lahore</Text>
-
-                    {/* Course Image */}
-                    <View
-                        style={{
-                            width: 5,
-                            height: 5,
-                            borderRadius: 10,
-                            marginLeft: 110,
-                        }}
-                    >
-                        <Image
-                            source={require("./School.jpeg")}
-                            style={{
-                                width: 80,
-                                height: 80,
-                                borderRadius: 10,
-                                marginLeft: 100,
-                                marginTop: -25,
-                            }}
-                        />
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <Ionicons
-                            name="time-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>1 hr ago</Text>
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <Ionicons
-                            name="calendar-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Duration: 3 Months</Text>
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <Ionicons
-                            name="cash-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Fee: Rs. 40,000</Text>
-                    </View>
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <MaterialCommunityIcons
-                            name="book-open-page-variant-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Course: React Native Development</Text>
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <MaterialCommunityIcons
-                            name="briefcase-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Experience: 2 years</Text>
-                    </View>
-
-                    {/* Buttons */}
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            marginTop: 10,
-                        }}
-                    >
-                        <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")}
-                            style={{
-                                backgroundColor: "purple",
-                                padding: 8,
-                                borderRadius: 20,
-                                flex: 1,
-                                marginRight: 5,
-                            }}
-                        >
-                            <Text
-                                style={{ color: "#fff", textAlign: "center", fontSize: 14 }}
-                            >
-                                Details
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate("Chat")}
-                            style={{
-                                backgroundColor: "purple",
-                                padding: 8,
-                                borderRadius: 20,
-                                flex: 1,
-                                marginLeft: 5,
-                            }}
-                        >
-                            <Text
-                                style={{ color: "#fff", textAlign: "center", fontSize: 14 }}
-                            >
-                                Chat
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
             </View>
 
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 20 }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Private Jobs</Text>
+                <TouchableOpacity onPress={() => navigation.navigate("PrivBrowse")} >
+                    <Text style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
+                </TouchableOpacity>
+            </View>
 
-
+            <View style={{ marginVertical: 10, paddingHorizontal: 10 }}>
+                {privateJobs.length === 0 ? (
+                    <Text style={{ textAlign: 'center', marginTop: 10 }}>No private jobs yet.</Text>
+                ) : (
+                    privateJobs.slice(0, 5).map((it) => (
+                        <View key={it.id} style={{
+                            backgroundColor: "#d8b4e2",
+                            borderRadius: 10,
+                            padding: 15,
+                            marginBottom: 15,
+                            shadowColor: "#000",
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 3,
+                            borderWidth: 2,
+                            borderColor: "purple"
+                        }}>
+                            <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{it.title}</Text>
+                            <Text>{it.subtitle}</Text>
+                            {!!it.classLevel && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
+                                    <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                                    <Text>{`Class: ${it.classLevel}`}</Text>
+                                </View>
+                            )}
+                            {!!it.salary && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
+                                    <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                                    <Text>{it.salary}</Text>
+                                </View>
+                            )}
+                            {!!it.mode && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
+                                    <MaterialCommunityIcons name="briefcase-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                                    <Text>{`Mode: ${it.mode}`}</Text>
+                                </View>
+                            )}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+                                <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")} style={{ backgroundColor: 'purple', padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}>
+                                    <Text style={{ color: '#fff', textAlign: 'center', fontSize: 14 }}>Details</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => navigation.navigate("Chat")} style={{ backgroundColor: 'purple', padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}>
+                                    <Text style={{ color: '#fff', textAlign: 'center', fontSize: 14 }}>Chat</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ))
+                )}
+            </View>
 
         </ScrollView>
     );
