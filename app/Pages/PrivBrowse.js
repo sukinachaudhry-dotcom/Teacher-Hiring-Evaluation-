@@ -24,15 +24,8 @@ export default function PrivateJobs({ navigation }) {
       where("course", "==", true)
     );
 
-    // Stream all institution jobs (school/college/university)
-    const instAllQ = query(
-      collection(db, "institutionJobs"),
-      where("institutionType", "in", ["school", "college", "university"]) 
-    );
-
     let studentList = [];
     let courseList = [];
-    let instAllList = [];
 
     const unsub1 = onSnapshot(studentsQ, (snap) => {
       studentList = [];
@@ -48,11 +41,11 @@ export default function PrivateJobs({ navigation }) {
           mode: s.modeofteaching || "",
         });
       });
-      setItems([...courseList, ...instAllList, ...studentList]);
+      setItems([...courseList, ...studentList]);
       setLoading(false);
     }, () => {
       studentList = [];
-      setItems([...courseList, ...instAllList]);
+      setItems([...courseList]);
       setLoading(false);
     });
 
@@ -70,40 +63,17 @@ export default function PrivateJobs({ navigation }) {
           mode: j.mode || j.modeofteaching || "",
         });
       });
-      setItems([...courseList, ...instAllList, ...studentList]);
+      setItems([...courseList, ...studentList]);
       setLoading(false);
     }, () => {
       courseList = [];
-      setItems([...instAllList, ...studentList]);
-      setLoading(false);
-    });
-
-    const unsub3 = onSnapshot(instAllQ, (snap) => {
-      instAllList = [];
-      snap.forEach((d) => {
-        const j = d.data();
-        instAllList.push({
-          id: `inst_${d.id}`,
-          source: "institution",
-          title: j.title || "Teaching Job",
-          subtitle: j.institutionName || j.city || j.address || "",
-          classLevel: j.classLevel || j.grade || "",
-          salary: j.salary || "",
-          mode: j.mode || j.modeofteaching || "",
-        });
-      });
-      setItems([...courseList, ...instAllList, ...studentList]);
-      setLoading(false);
-    }, () => {
-      instAllList = [];
-      setItems([...courseList, ...studentList]);
+      setItems([...studentList]);
       setLoading(false);
     });
 
     return () => {
       unsub1();
       unsub2();
-      unsub3();
     };
   }, []);
 

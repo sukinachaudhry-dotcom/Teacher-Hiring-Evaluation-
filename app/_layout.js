@@ -59,7 +59,7 @@ const Stack = createNativeStackNavigator();
 
 
 const TeacherStack = () => (
-  <Stack.Navigator initialRouteName="BottomTab">
+  <Stack.Navigator initialRouteName="StuBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />/ */}
     <Stack.Screen name="Submitted" component={Submitted} />
@@ -111,7 +111,7 @@ const TeacherStack = () => (
 );
 
 const StudentStack = () => (
-  <Stack.Navigator initialRouteName="BottomTab">
+  <Stack.Navigator initialRouteName="StuBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}
@@ -130,7 +130,7 @@ const StudentStack = () => (
 );
 
 const InstitutionStack = () => (
-  <Stack.Navigator initialRouteName="BottomTab">
+  <Stack.Navigator initialRouteName="StuBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}

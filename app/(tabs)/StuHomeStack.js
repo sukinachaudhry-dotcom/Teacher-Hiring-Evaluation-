@@ -20,7 +20,7 @@ const StuHomeStack = () => {
         <Stack.Screen name="Studenthome" component={Studenthome} />
         <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
         <Stack.Screen name="Applicants" component={Applicants} />
-        <Stack.Screen name="Chat" component={ChatScreen} />
+        {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
 
       </Stack.Navigator>
     </SafeAreaView>

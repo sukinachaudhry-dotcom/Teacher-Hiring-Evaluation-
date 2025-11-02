@@ -186,9 +186,7 @@ export default function App({ navigation }) {
                     <TouchableOpacity onPress={() => {
                         const title = (item?.title || "").toString();
                         const normalized = title.trim().toLowerCase();
-                        if (normalized === "all") {
-                            navigation.navigate("PrivBrowse");
-                        } else if (normalized === "home tuition" || normalized.includes("home") && normalized.includes("tuition")) {
+                        if (normalized === "home tuition" || normalized.includes("home") && normalized.includes("tuition")) {
                             navigation.navigate("TuitionJobs");
                         } else {
                             navigation.navigate("InstBrowse");

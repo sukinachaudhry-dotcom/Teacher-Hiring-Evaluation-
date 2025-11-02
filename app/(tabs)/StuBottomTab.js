@@ -17,7 +17,7 @@ export default function StuBottomTab() {
             headerShown: false
         }} initialRouteName='Home'>
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} /> }} name="Home" component={StuHomeStack} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="chat" component={ChatScreen} />
+            {/* <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="chat" component={ChatScreen} /> */}
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={Studentviewprofile} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={24} color={color} /> }} name="Applicants" component={Applicants} />
 
