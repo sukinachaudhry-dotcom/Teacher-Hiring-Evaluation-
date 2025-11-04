@@ -2,22 +2,57 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, SafeAreaView ,Dimensions,} from 'react-native';
 import { Ionicons , MaterialCommunityIcons } from "@expo/vector-icons";
 import Carousel from "react-native-reanimated-carousel";
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 
 const { width } = Dimensions.get("window");
 
 export default function App({ navigation }) {
-    const images = [
-        "https://images.pexels.com/photos/256395/pexels-photo-256395.jpeg", // School building
-        "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg", // Business handshake (hiring)
-        "https://images.pexels.com/photos/256490/pexels-photo-256490.jpeg", // Teacher teaching in classroom
-      ];
-    const teachers = [
-        { name: "Ali Hassan", subject: "Computer", exp: "+5 Years Exp", desc: "Available for a job or private lessons", img: require("./Ali.jpeg") },
-        { name: "Sara Ali", subject: "Chemistry", exp: "+2 Years Exp", desc: "Available for online private lessons", img: require("./Ali.jpeg") },
-        { name: "Usman Khan", subject: "Physics", exp: "+7 Years Exp", desc: "Expert in Physics & Mechanics", img: require("./Ali.jpeg") },
-        { name: "Ayesha Noor", subject: "Maths", exp: "+4 Years Exp", desc: "Algebra & Calculus Specialist", img: require("./Ali.jpeg") },
-    ];
+    const [images, setImages] = React.useState([
+        "https://images.pexels.com/photos/256395/pexels-photo-256395.jpeg",
+        "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg",
+        "https://images.pexels.com/photos/256490/pexels-photo-256490.jpeg",
+      ]);
+    const [teachers, setTeachers] = React.useState([]);
+
+    React.useEffect(() => {
+        try {
+            const q = query(collection(db, 'sliders'), where('role', '==', 'student'), orderBy('order', 'asc'));
+            const unsub = onSnapshot(q, (snap) => {
+                const arr = [];
+                snap.forEach((doc) => {
+                    const d = doc.data();
+                    if (d && d.url) arr.push(d.url);
+                });
+                if (arr.length) setImages(arr);
+            });
+            return () => unsub();
+        } catch (e) {
+            console.log('slider subscribe error', e);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        try {
+            const q = query(
+                collection(db, 'users'),
+                where('role', '==', 'Teacher'),
+                orderBy('createdAt', 'desc')
+            );
+            const unsub = onSnapshot(q, (snap) => {
+                const arr = [];
+                snap.forEach((doc) => {
+                    const d = doc.data();
+                    arr.push({ id: doc.id, ...d });
+                });
+                setTeachers(arr);
+            });
+            return () => unsub();
+        } catch (e) {
+            console.log('teachers subscribe error', e);
+        }
+    }, []);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -85,7 +120,7 @@ export default function App({ navigation }) {
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
           {/* Computer */}
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Computer")}>
             <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
               <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
                 <Ionicons name="laptop-outline" size={30} color="#000" />
@@ -95,7 +130,7 @@ export default function App({ navigation }) {
           </TouchableOpacity>
 
           {/* Physics */}
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Physics")}>
             <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
               <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
                 <MaterialCommunityIcons name="atom" size={30} color="#000" />
@@ -104,15 +139,15 @@ export default function App({ navigation }) {
             </View>
           </TouchableOpacity>
           {/* Chemistry */}
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("CoursesJobs")}>
             <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
               <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="test-tube" size={30} color="#000" />
+                <MaterialCommunityIcons name="book-open-page-variant" size={30} color="#000" />
               </View>
-              <Text style={{ marginTop: 5 }}>Chemistry</Text>
+              <Text style={{ marginTop: 5 }}>Course</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Maths")}>
             <View style={{ marginHorizontal: 10, alignItems: "center" }}>
               <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
                 <MaterialCommunityIcons name="calculator" size={30} color="#000" />
@@ -120,34 +155,34 @@ export default function App({ navigation }) {
               <Text style={{ marginTop: 5 }}>Math</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity>
+          {/* <TouchableOpacity>
             <View style={{ marginHorizontal: 10, alignItems: "center" }}>
               <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
                 <MaterialCommunityIcons name="dna" size={30} color="#000" />
               </View>
               <Text style={{ marginTop: 5 }}>Biology</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* Islamiyat */}
-          <TouchableOpacity>
+          {/* <TouchableOpacity>
             <View style={{ marginHorizontal: 10, alignItems: "center" }}>
               <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
                 <MaterialCommunityIcons name="mosque" size={30} color="#000" />
               </View>
               <Text style={{ marginTop: 5 }}>Islamiyat</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* History */}
-          <TouchableOpacity>
+          {/* <TouchableOpacity>
             <View style={{ marginHorizontal: 10, alignItems: "center" }}>
               <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
                 <MaterialCommunityIcons name="history" size={30} color="#000" />
               </View>
               <Text style={{ marginTop: 5 }}>History</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </ScrollView>
 
                 {/* Popular Teachers Section */}
@@ -159,31 +194,33 @@ export default function App({ navigation }) {
 
                 {/* Teacher Cards Grid (2 per row) */}
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
-                    {teachers.map((teacher, index) => (
+                    {teachers.length === 0 ? (
+                        <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No popular teachers yet.</Text>
+                    ) : (
+                    teachers.map((teacher, index) => (
                         <View
                             key={index}
                             style={{
                                 width: "48%",
-                                backgroundColor: '#d8b4e2',
+                                backgroundColor: '#fff',
                                 borderRadius: 10,
                                 padding: 10,
                                 marginBottom: 15,
-                                shadowColor: '#000',
-                                shadowOpacity: 0.1,
-                                shadowRadius: 4,
-                                elevation: 3,
-                                borderWidth: 2,
-                                borderColor: "purple"
+                              
+                                resizeMode: "cover",
+                               
+                                elevation: 3,                 
+                              
                             }}
                         >
                             <Image
-                                source={teacher.img}
+                                source={teacher.photoUrl ? { uri: teacher.photoUrl } : require("./Ali.jpeg")}
                                 style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
                             />
-                            <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name}</Text>
-                            <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.subject}</Text>
-                            <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.desc}</Text>
-                            <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.exp}</Text>
+                            <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
+                            <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
+                            <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
+                            <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
 
                             {/* Buttons */}
                             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
@@ -201,7 +238,8 @@ export default function App({ navigation }) {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    ))}
+                    ))
+                    )}
                 </View>
 
             </ScrollView>

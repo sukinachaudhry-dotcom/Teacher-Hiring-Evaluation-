@@ -11,18 +11,20 @@ import {
 } from "react-native";
 import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useDispatch } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from 'expo-image-picker';
 
 import { setUser, setRole } from "../Redux/Slices/HomeDataSlice";
-import { addData, handleSignUp, uploadImageToCloudinary } from "../Helper/firebaseHelper";
+import { handleSignUp, uploadImageToCloudinary } from "../Helper/firebaseHelper";
 import { Dropdown } from "react-native-element-dropdown";
 
 const InstituteProfile = () => {
+  const navigation = useNavigation();
   const [institutionname, setInstitutionname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmpassword, setConfirmpassword] = useState("");
-  const [address, setAddress] = useState(null);
+  const [address, setAddress] = useState("");
   const [type, setType] = useState("");
   const instituteTypeData = [
     { label: "Kindergarten / Nursery / Prep", value: "kindergarten" },
@@ -117,6 +119,14 @@ const InstituteProfile = () => {
       return;
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailTrim = (email || "").toString().trim().toLowerCase();
+    if (!emailRegex.test(emailTrim)) {
+      Alert.alert("Error", "Please enter a valid email address.");
+      return;
+    }
+
     // Password validation
     if (password !== confirmpassword) {
       Alert.alert("Error", "Passwords do not match.");
@@ -134,43 +144,34 @@ const InstituteProfile = () => {
       // Upload images to Cloudinary first
       const { profileImageUrl, certificateImageUrl } = await uploadImages();
       
-      // Create Firebase user account
-      const user = await handleSignUp(email, password, {
+      // Prepare institution data (exclude password from being stored)
+      const institutionData = {
         role: "Institution",
         institutionname,
-        email,
+        email: emailTrim,
         address,
         type,
         website,
         hours,
-        profileImage: profileImageUrl,
-        certificate: certificateImageUrl,
-      });
+        profileImage: profileImageUrl || null,
+        certificate: certificateImageUrl || null,
+        createdAt: new Date().toISOString(),
+      };
+      
+      // Create Firebase user account and save all data to Firestore
+      const user = await handleSignUp(emailTrim, password, institutionData);
 
       if (user?.uid) {
         // Update Redux store
         dispatch(setRole("Institution"));
         dispatch(setUser(user));
         
-        // Store additional institution data in Firestore
-        await addData("Institution", {
-          uid: user.uid,
-          institutionname,
-          email,
-          address,
-          type,
-          website,
-          hours,
-          profileImage: profileImageUrl,
-          certificate: certificateImageUrl,
-          createdAt: new Date().toISOString(),
-        });
-
         Alert.alert("Success", "Institution account created successfully!", [
           {
             text: "OK",
             onPress: () => {
-              // Navigation will be handled by Redux state change
+              // Navigate to Institutehome after successful signup
+              navigation.navigate("InstBottomTab");
             }
           }
         ]);
@@ -271,7 +272,7 @@ const InstituteProfile = () => {
               style={{ flex: 1, color: "#333", marginLeft: 8 }}
               placeholder="Enter Name"
               placeholderTextColor="#999"
-              // value={orgName}
+              value={institutionname}
               onChangeText={(e) => setInstitutionname(e)} />
           </View>
           {/* Email */}
@@ -290,10 +291,15 @@ const InstituteProfile = () => {
               backgroundColor: "#fff",
             }}
           >
+            <Ionicons name="mail-outline" size={20} color="purple" style={{ marginRight: 8 }} />
             <TextInput
               onChangeText={(e) => setEmail(e)}
               placeholder="Enter Email"
+              placeholderTextColor="#999"
               style={{ flex: 1, height: 40, color: "#333", marginLeft: 8 }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
             />
           </View>
 
@@ -315,11 +321,14 @@ const InstituteProfile = () => {
               backgroundColor: "#fff",
             }}
           >
+            <Ionicons name="lock-closed-outline" size={20} color="purple" style={{ marginRight: 8 }} />
             <TextInput
               secureTextEntry
               onChangeText={(e) => setPassword(e)}
               placeholder="Enter Password"
+              placeholderTextColor="#999"
               style={{ flex: 1, height: 40, color: "#333", marginLeft: 8 }}
+              value={password}
             />
           </View>
           {/* Confirm Password */}
@@ -341,10 +350,12 @@ const InstituteProfile = () => {
           >
             <Ionicons name="key-outline" size={20} color="purple" style={{ marginRight: 8 }} />
             <TextInput
+              secureTextEntry
               onChangeText={(text) => setConfirmpassword(text)}
               placeholder="Confirm Password"
               placeholderTextColor="#999"
               style={{ flex: 1, height: 40, color: "#333" }}
+              value={confirmpassword}
             />
           </View>
 
@@ -371,6 +382,7 @@ const InstituteProfile = () => {
               placeholder="Enter Full Address"
               placeholderTextColor="#999"
               style={{ flex: 1, height: 40, color: "#333" }}
+              value={address}
             />
           </View>
 
@@ -428,8 +440,10 @@ const InstituteProfile = () => {
               style={{ flex: 1, color: "#333", marginLeft: 8 }}
               placeholder="Enter Website/Link"
               placeholderTextColor="#999"
-              // value={website}
+              value={website}
               onChangeText={(e) => setWebsite(e)}
+              keyboardType="url"
+              autoCapitalize="none"
             />
           </View>
 

@@ -52,14 +52,17 @@ import Applicants from './Pages/Applicants';
 import Postjob from './Pages/Postjob';
 import InstJobs from './Pages/InstJobs';
 import Studentviewprofile from './Pages/Studentviewprofile';
-
-
+import Computer from './Pages/Computer';
+import MathCoursesPage from "./Pages/Math";
+import PhysicsCoursesPage from "./Pages/Physics";
+import Viewall from "./Pages/Viewall";
+import Favourite from "./Pages/Favourite";
 
 const Stack = createNativeStackNavigator();
 
 
 const TeacherStack = () => (
-  <Stack.Navigator initialRouteName="StuBottomTab">
+  <Stack.Navigator initialRouteName="InstBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />/ */}
     <Stack.Screen name="Submitted" component={Submitted} />
@@ -85,8 +88,6 @@ const TeacherStack = () => (
     <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
     <Stack.Screen name="Privacy" component={Privacy} />
     <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
-    <Stack.Screen name="StudentProfile" component={StudentProfile} />
-    <Stack.Screen name="StudentSignup" component={StudentSignup} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfile} />
     <Stack.Screen name="InstBrowse" component={InstBrowse} />
     {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
@@ -96,55 +97,64 @@ const TeacherStack = () => (
     <Stack.Screen name="ShortlistDetails" component={ShortlistDetails} />
     <Stack.Screen name="InterviewDetails" component={InterviewDetails} />
     <Stack.Screen name="ConfirmInterview" component={ConfirmInterview} />
-    
-    
-    <Stack.Screen name="Institutehome" component={Institutehome} />
-    <Stack.Screen name="InstBottomTab" component={InstBottomTab} />
-    <Stack.Screen name="Viewjobdetail" component={Viewjobdetail} />
-    <Stack.Screen name="Viewprofile" component={Viewprofile} />
-    <Stack.Screen name="Applicants" component={Applicants} />
-    <Stack.Screen name="Postjob" component={Postjob} />
-    <Stack.Screen name="StuBottomTab" component={StuBottomTab} />
-    <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
 
   </Stack.Navigator>
 );
 
 const StudentStack = () => (
-  <Stack.Navigator initialRouteName="StuBottomTab">
+  <Stack.Navigator initialRouteName="InstBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}
-      <Stack.Screen name="Settings" component={Settings} />
+    <Stack.Screen name="Settings" component={Settings} />
+    <Stack.Screen name="ForgotPass" component={ForgotPass} />
+    <Stack.Screen name="ChangePass" component={ChangePass} />
+    <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
+    <Stack.Screen name="Privacy" component={Privacy} />
     <Stack.Screen name="Role" component={Role} />
     <Stack.Screen name="StudentProfile" component={StudentProfile} />
     <Stack.Screen name="StudentSignup" component={StudentSignup} />
     <Stack.Screen name="Viewjobdetail" component={Viewjobdetail} />
-    <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
     <Stack.Screen name="Applicants" component={Applicants} />
     <Stack.Screen name="StuBottomTab" component={StuBottomTab} />
     <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
+    <Stack.Screen name="Computer" component={Computer} />
+    <Stack.Screen name="Physics" component={PhysicsCoursesPage} />
+    <Stack.Screen name="Maths" component={MathCoursesPage} />
+    <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
+    <Stack.Screen name="Viewall" component={Viewall} />
+    <Stack.Screen name="Favourite" component={Favourite}/>
+
 
     {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
   </Stack.Navigator>
 );
 
 const InstitutionStack = () => (
-  <Stack.Navigator initialRouteName="StuBottomTab">
+  <Stack.Navigator initialRouteName="InstBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}
     <Stack.Screen name="Role" component={Role} />
+    <Stack.Screen name="ForgotPass" component={ForgotPass} />
+    <Stack.Screen name="ChangePass" component={ChangePass} />
+    <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
+    <Stack.Screen name="Privacy" component={Privacy} />
+    <Stack.Screen name="Settings" component={Settings} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfile} />
     <Stack.Screen name="Institutehome" component={Institutehome} />
     <Stack.Screen name="InstBottomTab" component={InstBottomTab} />
     <Stack.Screen name="Viewjobdetail" component={Viewjobdetail} />
     <Stack.Screen name="Viewprofile" component={Viewprofile} />
-    <Stack.Screen name="Deleteprofile" component={Deleteprofile} />
     <Stack.Screen name="Applicants" component={Applicants} />
-        <Stack.Screen name="Postjob" component={Postjob} />
+    <Stack.Screen name="Postjob" component={Postjob} />
     {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
     <Stack.Screen name="InstJobs" component={InstJobs} />
+    <Stack.Screen name="Computer" component={Computer} />
+    <Stack.Screen name="Physics" component={PhysicsCoursesPage} />
+    <Stack.Screen name="Maths" component={MathCoursesPage} />
+    <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
+    <Stack.Screen name="Viewall" component={Viewall} />
 
 
   </Stack.Navigator>

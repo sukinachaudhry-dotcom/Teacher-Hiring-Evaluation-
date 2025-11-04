@@ -249,16 +249,14 @@ export default function App({ navigation }) {
                 ) : (
                     instJobs.slice(0, 5).map((job) => (
                         <View key={job.id} style={{
-                            backgroundColor: "#d8b4e2",
+                            backgroundColor: "#fff",
                             borderRadius: 10,
                             padding: 15,
                             marginBottom: 15,
-                            shadowColor: "#000",
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
                             elevation: 3,
-                            borderWidth: 2,
-                            borderColor: "purple"
+                             shadowColor: "#000",
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,                         
                         }}>
                             <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{job.title || 'Teaching Job'}</Text>
                             <Text>{job.institutionName || job.city || job.address || 'Institution'}</Text>
@@ -298,16 +296,15 @@ export default function App({ navigation }) {
                 ) : (
                     privateJobs.slice(0, 5).map((it) => (
                         <View key={it.id} style={{
-                            backgroundColor: "#d8b4e2",
+                            backgroundColor: "#fff",
                             borderRadius: 10,
                             padding: 15,
                             marginBottom: 15,
+                            
+                            elevation: 3,
                             shadowColor: "#000",
                             shadowOpacity: 0.1,
                             shadowRadius: 4,
-                            elevation: 3,
-                            borderWidth: 2,
-                            borderColor: "purple"
                         }}>
                             <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{it.title}</Text>
                             <Text>{it.subtitle}</Text>

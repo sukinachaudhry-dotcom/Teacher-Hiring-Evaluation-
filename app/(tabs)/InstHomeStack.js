@@ -22,7 +22,7 @@ const InstHomeStack = () => {
         <Stack.Screen name="InstJobs" component={InstJobs} />
         <Stack.Screen name="Viewprofile" component={Viewprofile} />
         <Stack.Screen name="Applicants" component={Applicants} />
-        <Stack.Screen name="Chat" component={ChatScreen} />
+        {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
 
       </Stack.Navigator>
     </SafeAreaView>

@@ -5,7 +5,7 @@ import StuHomeStack from './StuHomeStack';
 import InstJobs from '../Pages/InstJobs';
 import ChatScreen from '../Pages/Chat';
 import Studentviewprofile from '../Pages/Studentviewprofile';
-import Applicants from '../Pages/Applicants';
+import Favourite from '../Pages/Favourite';
 
 
 const Tab = createBottomTabNavigator();
@@ -19,7 +19,7 @@ export default function StuBottomTab() {
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} /> }} name="Home" component={StuHomeStack} />
             {/* <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="chat" component={ChatScreen} /> */}
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={Studentviewprofile} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={24} color={color} /> }} name="Applicants" component={Applicants} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="bookmark-outline" size={24} color={color} /> }} name="Favourite" component={Favourite} />
 
 
 

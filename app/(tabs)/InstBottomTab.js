@@ -18,7 +18,7 @@ export default function InstBottomTab() {
             headerShown: false
         }} initialRouteName='Home'>
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} /> }} name="Home" component={InstHomeStack} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="chat" component={ChatScreen} />
+            {/* <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="chat" component={ChatScreen} /> */}
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={ViewDetails} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="briefcase" size={24} color={color} /> }} name="Jobs" component={InstJobs} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={24} color={color} /> }} name="Applicants" component={Applicants} />

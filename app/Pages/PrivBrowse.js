@@ -147,12 +147,9 @@ export default function PrivateJobs({ navigation }) {
               borderRadius: 10,
               padding: 15,
               marginBottom: 15,
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
               elevation: 3,
-              borderWidth: 2,
-              borderColor: "purple"
+             
+              
             }}>
               <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{it.title}</Text>
               <Text>{it.subtitle}</Text>
