@@ -57,12 +57,13 @@ import MathCoursesPage from "./Pages/Math";
 import PhysicsCoursesPage from "./Pages/Physics";
 import Viewall from "./Pages/Viewall";
 import Favourite from "./Pages/Favourite";
+import instJobdetails from './Pages/instJobdetails';
 
 const Stack = createNativeStackNavigator();
 
 
 const TeacherStack = () => (
-  <Stack.Navigator initialRouteName="InstBottomTab">
+  <Stack.Navigator initialRouteName="BottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />/ */}
     <Stack.Screen name="Submitted" component={Submitted} />
@@ -102,7 +103,7 @@ const TeacherStack = () => (
 );
 
 const StudentStack = () => (
-  <Stack.Navigator initialRouteName="InstBottomTab">
+  <Stack.Navigator initialRouteName="StuBottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />
     <Stack.Screen name="Signup" component={Signup} /> */}
@@ -155,7 +156,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="Maths" component={MathCoursesPage} />
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
-
+    <Stack.Screen name="instJobdetails" component={instJobdetails} />
 
   </Stack.Navigator>
 );

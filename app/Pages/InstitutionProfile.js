@@ -16,7 +16,6 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { setUser, setRole } from "../Redux/Slices/HomeDataSlice";
 import { handleSignUp, uploadImageToCloudinary } from "../Helper/firebaseHelper";
-import { Dropdown } from "react-native-element-dropdown";
 
 const InstituteProfile = () => {
   const navigation = useNavigation();
@@ -33,7 +32,6 @@ const InstituteProfile = () => {
     { label: "High School (9-10)", value: "highschool" },
     { label: "Intermediate (11-12)", value: "intermediate" },
     { label: "Undergraduate", value: "undergraduate" },
-    { label: "Postgraduate", value: "postgraduate" },
   ];
 
   const [website, setWebsite] = useState("");
@@ -49,6 +47,8 @@ const InstituteProfile = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [certificateImage, setCertificateImage] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [yearsRequired, setYearsRequired] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
 
   const dispatch = useDispatch();
   
@@ -153,6 +153,8 @@ const InstituteProfile = () => {
         type,
         website,
         hours,
+        yearsRequired,
+        jobDescription,
         profileImage: profileImageUrl || null,
         certificate: certificateImageUrl || null,
         createdAt: new Date().toISOString(),
@@ -404,17 +406,12 @@ const InstituteProfile = () => {
             }}
           >
             <FontAwesome name="university" size={20} color="purple" />
-            <Dropdown
-              style={{ flex: 1, marginLeft: 8 }}
-              placeholderStyle={{ fontSize: 14, color: "#999" }}
-              selectedTextStyle={{ fontSize: 14, color: "#333" }}
-              data={instituteTypeData}
-              labelField="label"
-              valueField="value"
-              placeholder="Select Type"
+            <TextInput
+              style={{ flex: 1, marginLeft: 8, color: "#333" }}
+              placeholder="Enter Institute Type"
+              placeholderTextColor="#999"
               value={type}
-              onChange={item => setType(item.value)}
-              maxHeight={150}
+              onChangeText={(t) => setType(t)}
             />
           </View>
 
@@ -465,17 +462,12 @@ const InstituteProfile = () => {
             }}
           >
             <MaterialIcons name="access-time" size={20} color="purple" />
-            <Dropdown
-              style={{ flex: 1, marginLeft: 8 }}
-              placeholderStyle={{ fontSize: 14, color: "#999" }}
-              selectedTextStyle={{ fontSize: 14, color: "#333" }}
-              data={operatingHoursData}
-              labelField="label"
-              valueField="value"
-              placeholder="Select Hours"
+            <TextInput
+              style={{ flex: 1, marginLeft: 8, color: "#333" }}
+              placeholder="Enter Operating Hours"
+              placeholderTextColor="#999"
               value={hours}
-              onChange={item => setHours(item.value)}
-              maxHeight={150}
+              onChangeText={(text) => setHours(text)}
             />
           </View>
 
@@ -518,6 +510,62 @@ const InstituteProfile = () => {
           </View>
             <Ionicons name="camera" size={20} color="purple" />
           </TouchableOpacity>
+   {/* 🔹 Years Required */}
+          <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>
+            Years Required
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              borderColor: "#ccc",
+              borderWidth: 1,
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              marginBottom: 15,
+              height: 45,
+              backgroundColor: "#fff",
+            }}
+          >
+            <MaterialIcons name="calendar-today" size={20} color="purple" style={{ marginRight: 8 }} />
+            <TextInput
+              placeholder="Enter required years"
+              placeholderTextColor="#999"
+              style={{ flex: 1, color: "#333", marginLeft: 8 }}
+              keyboardType="numeric"
+              value={yearsRequired}
+              onChangeText={(e) => setYearsRequired(e)}
+            />
+          </View>
+
+          {/* 🔹 Job Description */}
+          <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>
+            Job Description
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              borderColor: "#ccc",
+              borderWidth: 1,
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              marginBottom: 5,
+              backgroundColor: "#fff",
+              minHeight: 80,
+            }}
+          >
+            <Ionicons name="document-text-outline" size={20} color="purple" style={{ marginTop: 10, marginRight: 8 }} />
+            <TextInput
+              multiline
+              numberOfLines={4}
+              placeholder="Enter job description"
+              placeholderTextColor="#999"
+              style={{ flex: 1, color: "#333", marginLeft: 8, textAlignVertical: "top" }}
+              value={jobDescription}
+              onChangeText={(e) => setJobDescription(e)}
+            />
+          </View>
 
           {/* Button */}
           <TouchableOpacity
