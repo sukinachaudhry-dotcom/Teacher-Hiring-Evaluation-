@@ -5,9 +5,16 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { getAuth } from "firebase/auth";
+import { addData } from "../Helper/firebaseHelper";
 
 export default function Postjob() {
+  const navigation = useNavigation();
+  
+  // State variables to store form data
   const [jobTitle, setJobTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [experience, setExperience] = useState("");
@@ -15,18 +22,80 @@ export default function Postjob() {
   const [salary, setSalary] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [requirements, setRequirements] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    console.log({
-      jobTitle,
-      subject,
-      experience,
-      jobType,
-      salary,
-      location,
-      description,
-    });
-    alert("✅ Job Posted Successfully!");
+  // Function to handle job posting
+  const handleSubmit = async () => {
+    // Step 1: Validate that all required fields are filled
+    if (!jobTitle || !subject || !experience || !jobType || !salary || !location || !description || !requirements) {
+      Alert.alert("Error", "Please fill all fields before posting.");
+      return;
+    }
+
+    try {
+      // Step 2: Show loading state
+      setLoading(true);
+
+      // Step 3: Get the current logged-in institution's ID
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        Alert.alert("Error", "You must be logged in to post a job.");
+        setLoading(false);
+        return;
+      }
+
+      // Get institution ID (uid)
+      const institutionId = currentUser.uid;
+
+      // Step 4: Prepare job data to save in Firestore
+      const jobData = {
+        // Institution ID - This is REQUIRED and will identify which institution posted this job
+        institutionId: institutionId,
+        
+        // All job information from the form
+        jobTitle: jobTitle,
+        subject: subject,
+        experience: experience,
+        jobType: jobType,
+        salary: salary,
+        location: location,
+        description: description,
+        requirements: requirements,
+        
+        // Additional metadata
+        createdAt: new Date().toISOString(), // When the job was posted
+        status: "active", // Job status (active, closed, etc.)
+      };
+
+      // Step 5: Save job data to Firestore collection "post jobs"
+      // This will create a new document in the "post jobs" collection
+      const docId = await addData("post jobs", jobData);
+
+      if (docId) {
+        // Step 6: Show success message
+        Alert.alert("Success", "Job posted successfully", [
+          {
+            text: "OK",
+            onPress: () => {
+              // Step 7: Navigate back to home page
+              navigation.goBack();
+            }
+          }
+        ]);
+      } else {
+        Alert.alert("Error", "Failed to post job. Please try again.");
+      }
+    } catch (error) {
+      // Handle any errors
+      console.error("Error posting job:", error);
+      Alert.alert("Error", error.message || "Something went wrong. Please try again.");
+    } finally {
+      // Step 8: Hide loading state
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,7 +121,7 @@ export default function Postjob() {
         onChangeText={setJobTitle}
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           marginBottom: 15,
@@ -67,7 +136,7 @@ export default function Postjob() {
         onChangeText={setSubject}
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           marginBottom: 15,
@@ -84,7 +153,7 @@ export default function Postjob() {
         onChangeText={setExperience}
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           marginBottom: 15,
@@ -99,7 +168,7 @@ export default function Postjob() {
         onChangeText={setJobType}
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           marginBottom: 15,
@@ -114,7 +183,7 @@ export default function Postjob() {
         onChangeText={setSalary}
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           marginBottom: 15,
@@ -129,10 +198,27 @@ export default function Postjob() {
         onChangeText={setLocation}
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           marginBottom: 15,
+        }}
+      />
+      {/* Requirements */}
+      <Text style={{ fontWeight: "600", marginBottom: 5 }}>Requirements</Text>
+      <TextInput
+        placeholder="List required qualifications, skills, etc."
+        value={requirements}
+        onChangeText={setRequirements}
+        multiline
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          borderRadius: 10,
+          padding: 10,
+          height: 70,
+          marginBottom: 20,
+          textAlignVertical: "top",
         }}
       />
 
@@ -145,7 +231,7 @@ export default function Postjob() {
         multiline
         style={{
           borderWidth: 1,
-          borderColor: "purple",
+          borderColor: "#ccc",
           borderRadius: 10,
           padding: 10,
           height: 100,
@@ -157,8 +243,9 @@ export default function Postjob() {
       {/* Submit Button */}
       <TouchableOpacity
         onPress={handleSubmit}
+        disabled={loading}
         style={{
-          backgroundColor: "purple",
+          backgroundColor: loading ? "#ccc" : "purple",
           padding: 15,
           borderRadius: 10,
           alignItems: "center",
@@ -166,7 +253,7 @@ export default function Postjob() {
         }}
       >
         <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-          Post Job
+          {loading ? "Posting Job..." : "Post Job"}
         </Text>
       </TouchableOpacity>
     </ScrollView>

@@ -1,13 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, View, Text, TouchableOpacity } from "react-native";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db, auth } from "../../firebase";
 
 const JobsScreen = ({navigation}) => {
-  const [jobs, setJobs] = useState([
-    { id: 1, title: "Physics Lecturer", applicants: 5 },
-    { id: 2, title: "Mathematics Teacher", applicants: 3 },
-    { id: 3, title: "Computer Science Instructor", applicants: 8 },
-    { id: 4, title: "English Teacher", applicants: 6 },
-  ]);
+  const [jobs, setJobs] = useState([]);
+
+  useEffect(() => {
+    const uid = auth?.currentUser?.uid;
+    if (!uid) return;
+    const q = query(collection(db, "post jobs"), where("institutionId", "==", uid));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = [];
+      snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+      setJobs(list);
+    }, () => setJobs([]));
+    return () => unsub();
+  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
@@ -34,11 +43,18 @@ const JobsScreen = ({navigation}) => {
             }}
           >
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#4A235A" }}>
-              {item.title}
+              {item.jobTitle || "Teaching Job"}
             </Text>
-            <Text style={{ fontSize: 14, color: "#555", marginTop: 5 }}>
-              {item.applicants} Applicants
-            </Text>
+            {!!item.location && (
+              <Text style={{ fontSize: 14, color: "#555", marginTop: 5 }}>
+                {item.location}
+              </Text>
+            )}
+            {!!item.salary && (
+              <Text style={{ fontSize: 14, color: "#555", marginTop: 5 }}>
+                Salary: {item.salary}
+              </Text>
+            )}
 
             <View
               style={{

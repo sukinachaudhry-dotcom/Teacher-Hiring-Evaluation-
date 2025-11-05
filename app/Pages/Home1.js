@@ -3,7 +3,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Carousel from "react-native-reanimated-carousel";
 import { useEffect } from 'react';
 import React, { useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { getAllData } from '../Helper/firebaseHelper';
 const { width } = Dimensions.get("window");
@@ -44,10 +44,11 @@ export default function App({ navigation }) {
     useEffect(() => {
         getDataFromDatabase();
         getCarouselFromDb();
-        // Subscribe to Institution Jobs (school/college) real-time
+        // Subscribe to Institution Jobs from 'post jobs' collection (real-time)
         const q = query(
-            collection(db, 'institutionJobs'),
-            where('institutionType', 'in', ['school', 'college', 'undergraduate', 'postgraduate'])
+            collection(db, 'post jobs'),
+            // status active only if present
+            orderBy('createdAt', 'desc')
         );
         const unsubInst = onSnapshot(q, (snap) => {
             const list = [];
@@ -258,11 +259,11 @@ export default function App({ navigation }) {
                             shadowOpacity: 0.1,
                             shadowRadius: 4,                         
                         }}>
-                            <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{job.title || 'Teaching Job'}</Text>
-                            <Text>{job.institutionName || job.city || job.address || 'Institution'}</Text>
+                            <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{job.jobTitle || 'Teaching Job'}</Text>
+                            <Text>{job.location || ''}</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
                                 <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>{job.classLevel ? `Class: ${job.classLevel}` : (job.grade ? `Class: ${job.grade}` : '')}</Text>
+                                <Text>{job.subject ? `Subject: ${job.subject}` : ''}</Text>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
                                 <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
