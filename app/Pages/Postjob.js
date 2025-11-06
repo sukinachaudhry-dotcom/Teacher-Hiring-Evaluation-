@@ -76,7 +76,7 @@ export default function Postjob() {
 
       if (docId) {
         // Step 6: Show success message
-        Alert.alert("Success", "Job posted successfully", [
+        Alert.alert("Success", "✅ Job Posted Successfully!", [
           {
             text: "OK",
             onPress: () => {
@@ -105,7 +105,7 @@ export default function Postjob() {
         style={{
           fontSize: 22,
           fontWeight: "bold",
-          color: "purple",
+          color: "Black",
           marginBottom: 20,
           textAlign: "center",
         }}
@@ -245,7 +245,7 @@ export default function Postjob() {
         onPress={handleSubmit}
         disabled={loading}
         style={{
-          backgroundColor: loading ? "#ccc" : "purple",
+          backgroundColor: "purple",
           padding: 15,
           borderRadius: 10,
           alignItems: "center",

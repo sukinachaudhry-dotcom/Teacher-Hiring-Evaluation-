@@ -46,6 +46,32 @@ export default function Institutehome({ navigation }) {
     }
   }, []);
 
+  // Fetch categories from Firestore collection "categories institute"
+  const [categories, setCategories] = React.useState([]);
+
+  React.useEffect(() => {
+    try {
+      // Query the "categories institute" collection
+      const q = query(collection(db, 'categories institute'));
+      const unsub = onSnapshot(q, (snap) => {
+        const catArray = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
+          // Get document ID as cid and add it to the data
+          catArray.push({
+            cid: doc.id, // Document ID
+            icon: data.icon || 'book-outline', // Icon name from Firestore
+            title: data.title || 'Category', // Title from Firestore
+          });
+        });
+        setCategories(catArray);
+      });
+      return () => unsub();
+    } catch (e) {
+      console.log('categories subscribe error', e);
+    }
+  }, []);
+
   // Applicants -> Teachers (real-time)
   const [teachers, setTeachers] = React.useState([]);
 
@@ -100,14 +126,6 @@ export default function Institutehome({ navigation }) {
       console.log('applicants subscribe error', e);
     }
   }, []);
-
-  // Subjects
-  const subjects = [
-    { name: "Courses", page: "Courses" },
-    { name: "Physics", page: "Physics" },
-    { name: "Computer", page: "Computer" },
-    { name: "Math", page: "Math" },
-  ];
 
   // Teacher Card Component
   const TeacherCard = ({ teacher }) => (
@@ -239,76 +257,46 @@ export default function Institutehome({ navigation }) {
           />
         </View>
 
-        {/* Subjects */}
+        {/* Categories - Fetched from Firestore */}
         <Text style={{ marginLeft: 10, fontSize: 16, fontWeight: 'bold' }}>
           Learning System
         </Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
-          {/* Computer */}
-          <TouchableOpacity onPress={() => navigation.navigate("Computer")}>
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <Ionicons name="laptop-outline" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Computer</Text>
+          {categories.length === 0 ? (
+            // Show loading or empty state
+            <View style={{ padding: 20 }}>
+              <Text style={{ color: '#999' }}>Loading categories...</Text>
             </View>
-          </TouchableOpacity>
-
-          {/* Physics */}
-          <TouchableOpacity onPress={() => navigation.navigate("Physics")}>
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="atom" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Physics</Text>
-            </View>
-          </TouchableOpacity>
-          {/* Chemistry */}
-          <TouchableOpacity onPress={() => navigation.navigate("CoursesJobs")}>
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="book-open-page-variant" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Course</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Maths")}>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="calculator" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Math</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="dna" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Biology</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Islamiyat */}
-          <TouchableOpacity>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="mosque" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Islamiyat</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* History */}
-          <TouchableOpacity>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="history" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>History</Text>
-            </View>
-          </TouchableOpacity>
+          ) : (
+            // Display categories dynamically from Firestore
+            categories.map((category) => (
+              <TouchableOpacity
+                key={category.cid}
+                onPress={() => {
+                  // Navigate based on category title
+                  // You can customize navigation based on your needs
+                  const pageMap = {
+                    'Computer': 'Computer',
+                    'Physics': 'Physics',
+                    'Math': 'Maths',
+                    'Courses': 'CoursesJobs',
+                    // Add more mappings as needed
+                  };
+                  const page = pageMap[category.title] || category.title;
+                  navigation.navigate(page);
+                }}
+              >
+                <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
+                  <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
+                    {/* Display icon from Firestore - using Ionicons */}
+                    <Ionicons name={category.icon} size={30} color="#000" />
+                  </View>
+                  <Text style={{ marginTop: 5 }}>{category.title}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </ScrollView>
 
         {/* Popular Teachers */}
@@ -323,7 +311,7 @@ export default function Institutehome({ navigation }) {
           }}
         >    
         <Text style={{ fontSize: 16, fontWeight: "bold" }}>Popular Teachers</Text>
-         <TouchableOpacity onPress={() => navigation.navigate("Viewall")} >   
+         <TouchableOpacity onPress={() => navigation.navigate("Viewall", { mode: 'popular' })} >   
           <Text style={{ color: "purple", fontWeight: "bold" }}>
             View All
           </Text>
@@ -350,7 +338,7 @@ export default function Institutehome({ navigation }) {
         }}
       >
         <Text style={{ fontSize: 16, fontWeight: "bold" }}>Recent Teachers</Text>
-        <Text onPress={() => navigation.navigate("Viewall")} style={{ color: "purple", fontWeight: "bold" }}>
+        <Text onPress={() => navigation.navigate("Viewall", { mode: 'recent' })} style={{ color: "purple", fontWeight: "bold" }}>
           View All
         </Text>
       </View>

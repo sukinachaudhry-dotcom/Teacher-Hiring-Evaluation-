@@ -7,39 +7,83 @@ import {
   ScrollView,
   Image,
 } from "react-native";
+import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { db, auth } from "../../firebase";
 
-export default function Viewall({ navigation }) {
-  // Dummy teachers data
-  const teachers = [
-    {
-      name: "Ali Hassan",
-      subject: "Computer",
-      exp: "+5 Years Exp",
-      desc: "Available for job or private lessons",
-      img: require("./Ali.jpeg"),
-    },
-    {
-      name: "Sara Ali",
-      subject: "Chemistry",
-      exp: "+2 Years Exp",
-      desc: "Available for online private lessons",
-      img: require("./Ali.jpeg"),
-    },
-    {
-      name: "Usman Khan",
-      subject: "Physics",
-      exp: "+7 Years Exp",
-      desc: "Expert in Physics & Mechanics",
-      img: require("./Ali.jpeg"),
-    },
-    {
-      name: "Ayesha Noor",
-      subject: "Maths",
-      exp: "+4 Years Exp",
-      desc: "Algebra & Calculus Specialist",
-      img: require("./Ali.jpeg"),
-    },
-  ];
+export default function Viewall({ navigation, route }) {
+  const mode = route?.params?.mode === 'recent' ? 'recent' : 'popular';
+  const [teachers, setTeachers] = React.useState([]);
+
+  React.useEffect(() => {
+    let userUnsubs = [];
+    try {
+      const instUid = auth?.currentUser?.uid;
+      if (!instUid) return;
+
+      // Get applications for this institution
+      const appsQ = query(
+        collection(db, 'applications'),
+        where('institutionUid', '==', instUid),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubApps = onSnapshot(appsQ, (snap) => {
+        const applicantTeacherUids = [];
+        snap.forEach((d) => {
+          const a = d.data();
+          if (a && a.teacherUid && !applicantTeacherUids.includes(a.teacherUid)) {
+            applicantTeacherUids.push(a.teacherUid);
+          }
+        });
+
+        // cleanup previous
+        userUnsubs.forEach((u) => u && u());
+        userUnsubs = [];
+
+        // Subscribe to those teachers' user docs
+        const teacherMap = {};
+        applicantTeacherUids.forEach((uid) => {
+          const uUnsub = onSnapshot(doc(db, 'users', uid), (uSnap) => {
+            if (uSnap.exists()) {
+              const data = uSnap.data();
+              // derive numeric years from various formats like "+5 Years Exp", 3, "3", etc.
+              const expStr = (data?.experience ?? '').toString();
+              const years = Number(expStr.match(/\d+/)?.[0] || 0);
+              teacherMap[uid] = {
+                id: uid,
+                name: data?.name || data?.fullname || 'Unnamed',
+                teachingsubjects: data?.teachingsubjects || data?.subjects || '',
+                location: data?.location || data?.address || '',
+                experience: expStr,
+                experienceYears: years,
+                photoUrl: data?.profileImage || data?.photoUrl || null,
+              };
+            } else {
+              delete teacherMap[uid];
+            }
+
+            // Sort by experience based on mode
+            const arr = Object.values(teacherMap);
+            arr.sort((a, b) => {
+              if (mode === 'popular') return b.experienceYears - a.experienceYears;
+              return a.experienceYears - b.experienceYears;
+            });
+            setTeachers(arr);
+          });
+          userUnsubs.push(uUnsub);
+        });
+
+        if (applicantTeacherUids.length === 0) setTeachers([]);
+      }, () => setTeachers([]));
+
+      return () => {
+        unsubApps && unsubApps();
+        userUnsubs.forEach((u) => u && u());
+      };
+    } catch (e) {
+      console.log('viewall subscribe error', e);
+    }
+  }, [route?.params?.mode]);
 
   const TeacherCard = ({ teacher }) => (
     <View
@@ -54,7 +98,7 @@ export default function Viewall({ navigation }) {
       }}
     >
       <Image
-        source={teacher.img}
+        source={teacher.photoUrl ? { uri: teacher.photoUrl } : require("./Ali.jpeg")}
         style={{
           width: 60,
           height: 60,
@@ -66,13 +110,13 @@ export default function Viewall({ navigation }) {
         {teacher.name}
       </Text>
       <Text style={{ marginTop: 2, fontWeight: "bold", textAlign: "center" }}>
-        {teacher.subject}
+        {teacher.teachingsubjects || ''}
       </Text>
       <Text style={{ marginTop: 2, color: "#555", textAlign: "center" }}>
-        {teacher.desc}
+        {teacher.location || ''}
       </Text>
       <Text style={{ marginTop: 2, color: "#555", textAlign: "center" }}>
-        {teacher.exp}
+        {teacher.experience || ''}
       </Text>
 
       <View
