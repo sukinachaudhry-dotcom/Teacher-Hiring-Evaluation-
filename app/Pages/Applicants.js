@@ -60,7 +60,7 @@ export default function Applicants() {
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.btn, { backgroundColor: "purple" }]}>
-          <Text style={styles.btnText}>Shortlist</Text>
+          <Text style={styles.btnText}>Take Evaluation Test</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.btn, { backgroundColor: "purple" }]}>

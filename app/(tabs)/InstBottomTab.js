@@ -7,6 +7,7 @@ import ChatScreen from '../Pages/Chat';
 import Applicants from '../Pages/Applicants';
 import Jobdetails from '../Pages/Jobdetails';
 import instJobdetails from '../Pages/instJobdetails';
+import TestManagementStack from './TestManagementStack';
 
 
 const Tab = createBottomTabNavigator();
@@ -22,6 +23,7 @@ export default function InstBottomTab() {
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={instJobdetails} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="briefcase" size={24} color={color} /> }} name="Jobs" component={InstJobs} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={24} color={color} /> }} name="Applicants" component={Applicants} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} /> }} name="Tests" component={TestManagementStack} />
 
 
 
