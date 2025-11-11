@@ -52,6 +52,7 @@ import Applicants from './Pages/Applicants';
 import Postjob from './Pages/Postjob';
 import InstJobs from './Pages/InstJobs';
 import Studentviewprofile from './Pages/Studentviewprofile';
+import EditStudentProfile from './Pages/EditStudentProfile';
 import Computer from './Pages/Computer';
 import MathCoursesPage from "./Pages/Math";
 import PhysicsCoursesPage from "./Pages/Physics";
@@ -119,6 +120,7 @@ const StudentStack = () => (
     <Stack.Screen name="Applicants" component={Applicants} />
     <Stack.Screen name="StuBottomTab" component={StuBottomTab} />
     <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
+    <Stack.Screen name="EditStudentProfile" component={EditStudentProfile} />
     <Stack.Screen name="Computer" component={Computer} />
     <Stack.Screen name="Physics" component={PhysicsCoursesPage} />
     <Stack.Screen name="Maths" component={MathCoursesPage} />

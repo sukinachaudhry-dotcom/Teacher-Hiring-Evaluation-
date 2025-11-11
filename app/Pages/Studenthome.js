@@ -15,6 +15,7 @@ export default function App({ navigation }) {
         "https://images.pexels.com/photos/256490/pexels-photo-256490.jpeg",
       ]);
     const [teachers, setTeachers] = React.useState([]);
+    const [recentTeachers, setRecentTeachers] = React.useState([]);
 
     React.useEffect(() => {
         try {
@@ -33,6 +34,7 @@ export default function App({ navigation }) {
         }
     }, []);
 
+    // Fetch Popular Teachers - sorted by experience (or createdAt as fallback)
     React.useEffect(() => {
         try {
             const q = query(
@@ -44,13 +46,48 @@ export default function App({ navigation }) {
                 const arr = [];
                 snap.forEach((doc) => {
                     const d = doc.data();
-                    arr.push({ id: doc.id, ...d });
+                    // Extract experience years for sorting
+                    const expStr = (d?.experience ?? '').toString();
+                    const years = Number(expStr.match(/\d+/)?.[0] || 0);
+                    arr.push({ 
+                        id: doc.id, 
+                        ...d,
+                        experienceYears: years
+                    });
                 });
+                // Sort by experience (popular teachers have more experience)
+                arr.sort((a, b) => (b.experienceYears || 0) - (a.experienceYears || 0));
                 setTeachers(arr);
             });
             return () => unsub();
         } catch (e) {
-            console.log('teachers subscribe error', e);
+            console.log('popular teachers subscribe error', e);
+        }
+    }, []);
+
+    // Fetch Recent Teachers - sorted by createdAt (most recent first)
+    React.useEffect(() => {
+        try {
+            const q = query(
+                collection(db, 'users'),
+                where('role', '==', 'Teacher'),
+                orderBy('createdAt', 'desc')
+            );
+            const unsub = onSnapshot(q, (snap) => {
+                const arr = [];
+                snap.forEach((doc) => {
+                    const d = doc.data();
+                    arr.push({ 
+                        id: doc.id, 
+                        ...d
+                    });
+                });
+                // Already sorted by createdAt desc from query
+                setRecentTeachers(arr);
+            });
+            return () => unsub();
+        } catch (e) {
+            console.log('recent teachers subscribe error', e);
         }
     }, []);
 
@@ -188,33 +225,33 @@ export default function App({ navigation }) {
                 {/* Popular Teachers Section */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 20 }}>
                     <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Popular Teachers</Text>
-                    <Text onPress={() => navigation.navigate("Viewall")}
-                        style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate("Viewall", { mode: 'popular' })}>
+                        <Text style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Teacher Cards Grid (2 per row) */}
+                {/* Popular Teacher Cards Grid (2 per row) */}
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
                     {teachers.length === 0 ? (
                         <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No popular teachers yet.</Text>
                     ) : (
-                    teachers.map((teacher, index) => (
+                    teachers.slice(0, 6).map((teacher, index) => (
                         <View
-                            key={index}
+                            key={teacher.id || index}
                             style={{
                                 width: "48%",
                                 backgroundColor: '#fff',
                                 borderRadius: 10,
                                 padding: 10,
                                 marginBottom: 15,
-                              
-                                resizeMode: "cover",
-                               
-                                elevation: 3,                 
-                              
+                                shadowColor: "#000",
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                                elevation: 3,
                             }}
                         >
                             <Image
-                                source={teacher.photoUrl ? { uri: teacher.photoUrl } : require("./Ali.jpeg")}
+                                source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
                                 style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
                             />
                             <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
@@ -226,7 +263,64 @@ export default function App({ navigation }) {
                             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
                                 <TouchableOpacity
                                     style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
-                                    onPress={() => navigation.navigate("Studentviewprofile")}
+                                    onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
+                                >
+                                    <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
+                                    onPress={() => navigation.navigate("Chat")}
+                                >
+                                    <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ))
+                    )}
+                </View>
+
+                {/* Recent Teachers Section */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 10 }}>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Recent Teachers</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate("Viewall", { mode: 'recent' })}>
+                        <Text style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Recent Teacher Cards Grid (2 per row) */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
+                    {recentTeachers.length === 0 ? (
+                        <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No recent teachers yet.</Text>
+                    ) : (
+                    recentTeachers.slice(0, 6).map((teacher, index) => (
+                        <View
+                            key={`recent_${teacher.id || index}`}
+                            style={{
+                                width: "48%",
+                                backgroundColor: '#fff',
+                                borderRadius: 10,
+                                padding: 10,
+                                marginBottom: 15,
+                                shadowColor: "#000",
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                                elevation: 3,
+                            }}
+                        >
+                            <Image
+                                source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+                                style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+                            />
+                            <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
+                            <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
+                            <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
+                            <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
+
+                            {/* Buttons */}
+                            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+                                <TouchableOpacity
+                                    style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
+                                    onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
                                 >
                                     <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
                                 </TouchableOpacity>
