@@ -57,8 +57,10 @@ import Computer from './Pages/Computer';
 import MathCoursesPage from "./Pages/Math";
 import PhysicsCoursesPage from "./Pages/Physics";
 import Viewall from "./Pages/Viewall";
-import Favourite from "./Pages/Favourite";
+import HirePage from "./Pages/Hirepage";
 import instJobdetails from './Pages/instJobdetails';
+import PrivacyPolicy from "./Pages/PrivacyPolicy";
+import TermAndConditions from "./Pages/TermAndConditions";
 
 const Stack = createNativeStackNavigator();
 
@@ -99,6 +101,8 @@ const TeacherStack = () => (
     <Stack.Screen name="ShortlistDetails" component={ShortlistDetails} />
     <Stack.Screen name="InterviewDetails" component={InterviewDetails} />
     <Stack.Screen name="ConfirmInterview" component={ConfirmInterview} />
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
+    <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
 
   </Stack.Navigator>
 );
@@ -126,7 +130,9 @@ const StudentStack = () => (
     <Stack.Screen name="Maths" component={MathCoursesPage} />
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
-    <Stack.Screen name="Favourite" component={Favourite}/>
+    <Stack.Screen name="HirePage" component={HirePage}/>
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
+    <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
 
 
     {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
@@ -159,6 +165,8 @@ const InstitutionStack = () => (
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
     <Stack.Screen name="instJobdetails" component={instJobdetails} />
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
+    <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
 
   </Stack.Navigator>
 );

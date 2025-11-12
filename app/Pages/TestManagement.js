@@ -16,6 +16,7 @@ import { db, auth } from '../../firebase';
 export default function TestManagement({ navigation }) {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [questionCounts, setQuestionCounts] = useState({});
 
   useEffect(() => {
     const instUid = auth?.currentUser?.uid;
@@ -44,6 +45,19 @@ export default function TestManagement({ navigation }) {
           });
         });
         setSubjects(subjectsList);
+        // Fetch MCQ counts for each subject's questions subcollection
+        Promise.all(
+          subjectsList.map(async (s) => {
+            try {
+              const qsSnap = await getDocs(collection(db, 'tests', s.id, 'questions'));
+              return [s.id, qsSnap.size];
+            } catch (e) {
+              return [s.id, 0];
+            }
+          })
+        ).then((entries) => {
+          setQuestionCounts(Object.fromEntries(entries));
+        });
         setLoading(false);
       },
       (error) => {
@@ -96,7 +110,10 @@ export default function TestManagement({ navigation }) {
       >
         <View style={styles.subjectInfo}>
           <Ionicons name="book" size={24} color="purple" />
-          <Text style={styles.subjectName}>{item.subjectName}</Text>
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <Text style={styles.subjectName}>{item.subjectName}</Text>
+            <Text style={styles.mcqCount}>{questionCounts[item.id] ?? 0} MCQs</Text>
+          </View>
         </View>
         <Ionicons name="chevron-forward" size={24} color="#999" />
       </TouchableOpacity>
@@ -211,8 +228,12 @@ const styles = StyleSheet.create({
   subjectName: {
     fontSize: 18,
     fontWeight: '600',
-    marginLeft: 12,
     color: '#333',
+  },
+  mcqCount: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   actionButtons: {
     flexDirection: 'row',
