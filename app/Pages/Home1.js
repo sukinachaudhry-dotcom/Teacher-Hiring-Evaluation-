@@ -180,18 +180,21 @@ export default function App({ navigation }) {
             {/* Vertical Job List */}
             <View style={{ marginVertical: 10, paddingHorizontal: 10 }}>
                 {jobs.map((item) => (
-                    <View key={item.id} style={{
-                        backgroundColor: "#d8b4e2",
-                        borderRadius: 10,
-                        padding: 15,
-                        marginBottom: 15,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                        borderWidth: 2,
-                        borderColor: "purple"
-                    }}>
+                    <TouchableOpacity 
+                        key={item.id} 
+                        onPress={() => navigation.navigate('Jobdetails', { jobId: item.id })}
+                        style={{
+                            backgroundColor: "#d8b4e2",
+                            borderRadius: 10,
+                            padding: 15,
+                            marginBottom: 15,
+                            shadowColor: "#000",
+                            shadowOpacity: 0.1,
+                            shadowRadius: 4,
+                            elevation: 3,
+                            borderWidth: 2,
+                            borderColor: "purple"
+                        }}>
                         <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{item.jobTitle || 'Teaching Job'}</Text>
                         {!!item.location && <Text>{item.location}</Text>}
                         <View style={{ width: 5, height: 5, borderRadius: 10, marginLeft: 110 }}>
@@ -227,7 +230,8 @@ export default function App({ navigation }) {
                         )}
 
                         <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
-                            <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")}
+                            <TouchableOpacity 
+                                onPress={() => navigation.navigate("Jobdetails", { jobId: item.id })}
                                 style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}>
                                 <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Details</Text>
                             </TouchableOpacity>
@@ -235,7 +239,7 @@ export default function App({ navigation }) {
                                 <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 20 }}>
@@ -304,147 +308,6 @@ export default function App({ navigation }) {
 
                     </View>
                 ))}
-                <View
-                    style={{
-                        backgroundColor: "#d8b4e2",
-                        borderRadius: 10,
-                        padding: 15,
-                        marginBottom: 15,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                        borderWidth: 2,
-                        borderColor: "purple",
-                    }}
-                >
-                    {/* Course Title */}
-                    <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>
-                        Web Development Course Tutor Required
-                    </Text>
-                    <Text>Skill Academy, Lahore</Text>
-
-                    {/* Course Image */}
-                    <View
-                        style={{
-                            width: 5,
-                            height: 5,
-                            borderRadius: 10,
-                            marginLeft: 110,
-                        }}
-                    >
-                        <Image
-                            source={require("./School.jpeg")}
-                            style={{
-                                width: 80,
-                                height: 80,
-                                borderRadius: 10,
-                                marginLeft: 100,
-                                marginTop: -25,
-                            }}
-                        />
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <Ionicons
-                            name="time-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>1 hr ago</Text>
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <Ionicons
-                            name="calendar-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Duration: 3 Months</Text>
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <Ionicons
-                            name="cash-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Fee: Rs. 40,000</Text>
-                    </View>
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <MaterialCommunityIcons
-                            name="book-open-page-variant-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Course: React Native Development</Text>
-                    </View>
-
-                    <View
-                        style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}
-                    >
-                        <MaterialCommunityIcons
-                            name="briefcase-outline"
-                            size={18}
-                            color="black"
-                            style={{ marginRight: 6 }}
-                        />
-                        <Text>Experience: 2 years</Text>
-                    </View>
-
-                    {/* Buttons */}
-                    <View
-                        style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            marginTop: 10,
-                        }}
-                    >
-                        <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")}
-                            style={{
-                                backgroundColor: "purple",
-                                padding: 8,
-                                borderRadius: 20,
-                                flex: 1,
-                                marginRight: 5,
-                            }}
-                        >
-                            <Text
-                                style={{ color: "#fff", textAlign: "center", fontSize: 14 }}
-                            >
-                                Details
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate("Chat")}
-                            style={{
-                                backgroundColor: "purple",
-                                padding: 8,
-                                borderRadius: 20,
-                                flex: 1,
-                                marginLeft: 5,
-                            }}
-                        >
-                            <Text
-                                style={{ color: "#fff", textAlign: "center", fontSize: 14 }}
-                            >
-                                Chat
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
             </View>
 
 

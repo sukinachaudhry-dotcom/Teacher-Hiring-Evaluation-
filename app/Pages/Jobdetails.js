@@ -1,13 +1,44 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import { doc, getDoc, setDoc, collection, serverTimestamp, getDocs, query, where } from "firebase/firestore";
+import { db, auth } from "../../firebase";
+import { Alert } from 'react-native';
+import { useSelector } from "react-redux";
 
 const JobDetail = ({ route, navigation }) => {
   const jobId = route?.params?.jobId;
   const [job, setJob] = useState(null);
   const [inst, setInst] = useState(null);
+  const [isApplying, setIsApplying] = useState(false);
+  const {user  } = useSelector((state)=>state.home)
+  alert (user.uid )
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState('');
+
+  // Check if user has already applied
+  const checkIfApplied = async () => {
+    try {
+      // const user = user.uid;
+      if (!user) return;
+
+      const applicationsRef = collection(db, 'applications');
+      const q = query(
+        applicationsRef,
+        where('jobId', '==', jobId),
+        where('applicantId', '==', user.uid)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const application = querySnapshot.docs[0].data();
+        setHasApplied(true);
+        setApplicationStatus(application.status || 'Pending');
+      }
+    } catch (error) {
+      console.error('Error checking application status:', error);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -23,11 +54,71 @@ const JobDetail = ({ route, navigation }) => {
             const isnap = await getDoc(iref);
             if (isnap.exists()) setInst(isnap.data());
           }
+          // Check if user has already applied
+          await checkIfApplied();
         }
-      } catch {}
+      } catch (error) {
+        console.error('Error loading job details:', error);
+        Alert.alert('Error', 'Failed to load job details');
+      }
     };
     load();
   }, [jobId]);
+
+  const handleApply = async () => {
+    try {
+      // const user = user.uid ;
+      if (!user) {
+        Alert.alert('Authentication Required', 'Please log in to apply for this job');
+        navigation.navigate('Login');
+        return;
+      }
+
+      if (hasApplied) {
+        Alert.alert('Already Applied', `You've already applied for this job. Status: ${applicationStatus}`);
+        return;
+      }
+
+      setIsApplying(true);
+      
+      // Create a new application document
+      const applicationRef = doc(collection(db, 'applications'));
+      const applicationData = {
+        id: applicationRef.id,
+        jobId: jobId,
+        jobTitle: job.jobTitle || job.jobVacancy,
+        institutionId: job.institutionId,
+        institutionName: inst?.institutionname || '',
+        applicantId: user.uid,
+        status: 'Pending',
+        appliedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        jobLocation: job.location || '',
+        jobType: job.jobType || 'Full-time',
+        salary: job.salary || 'Negotiable'
+      };
+
+      await setDoc(applicationRef, applicationData);
+
+      setHasApplied(true);
+      setApplicationStatus('Pending');
+      
+      // Navigate to Submitted screen with application data
+      navigation.navigate('Submitted', {
+        applicationId: applicationRef.id,
+        jobTitle: applicationData.jobTitle,
+        institutionName: applicationData.institutionName,
+        appliedDate: new Date().toLocaleDateString(),
+        status: 'Pending'
+      });
+      
+    } catch (error) {
+      console.error('Error applying for job:', error);
+      Alert.alert('Error', 'Failed to submit application. Please try again.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -125,20 +216,35 @@ const JobDetail = ({ route, navigation }) => {
       </View>
 
       {/* Apply Button */}
-      <TouchableOpacity onPress={() => navigation.navigate("Submitted")}
+      <TouchableOpacity 
+        onPress={handleApply}
+        disabled={isApplying || hasApplied}
         style={{
           marginTop: 30,
-          backgroundColor: "purple",
+          backgroundColor: hasApplied ? '#888' : 'purple',
           padding: 15,
           borderRadius: 10,
           alignItems: "center",
+          opacity: isApplying ? 0.7 : 1,
         }}
-       
       >
-        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-          Apply Now
-        </Text>
+        {isApplying ? (
+          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Applying...</Text>
+        ) : hasApplied ? (
+          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
+            {applicationStatus === 'Approved' ? 'Application Approved' : 
+             applicationStatus === 'Rejected' ? 'Application Rejected' : 
+             'Application Submitted'}
+          </Text>
+        ) : (
+          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Apply Now</Text>
+        )}
       </TouchableOpacity>
+      {hasApplied && applicationStatus === 'Pending' && (
+        <Text style={{ marginTop: 10, textAlign: 'center', color: '#555' }}>
+          Your application is under review. We'll notify you once there's an update.
+        </Text>
+      )}
     </ScrollView>
   );
 };
