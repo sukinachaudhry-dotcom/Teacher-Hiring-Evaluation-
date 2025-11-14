@@ -5,6 +5,7 @@ import { db, auth } from "../../firebase";
 
 const JobsScreen = ({navigation}) => {
   const [jobs, setJobs] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     const uid = auth?.currentUser?.uid;
@@ -63,7 +64,7 @@ const JobsScreen = ({navigation}) => {
                 marginTop: 15,
               }}
             >
-              <TouchableOpacity onPress={() => navigation.navigate("Viewjobdetail")}
+              <TouchableOpacity onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
                 style={{
                   backgroundColor: "purple",
                   paddingVertical: 8,
@@ -72,7 +73,19 @@ const JobsScreen = ({navigation}) => {
                 }}
               >
                 
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>View</Text>
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>{expandedId === item.id ? "Hide" : "View"}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("EditJob", { jobId: item.id })}
+                style={{
+                  backgroundColor: "purple",
+                  paddingVertical: 8,
+                  paddingHorizontal: 20,
+                  borderRadius: 20,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>Edit</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -80,7 +93,7 @@ const JobsScreen = ({navigation}) => {
                 //   setJobs(jobs.filter((job) => job.id !== item.id))
                 // }
                 style={{
-                  backgroundColor: "red",
+                  backgroundColor: "purple",
                   paddingVertical: 8,
                   paddingHorizontal: 20,
                   borderRadius: 20,
@@ -89,6 +102,46 @@ const JobsScreen = ({navigation}) => {
                 <Text style={{ color: "#fff", fontWeight: "bold" }}>Delete</Text>
               </TouchableOpacity>
             </View>
+
+            {expandedId === item.id && (
+              <View style={{ marginTop: 15, backgroundColor: "#F8F4FB", padding: 12, borderRadius: 10 }}>
+                {!!item.description && (
+                  <Text style={{ fontSize: 14, color: "#333", marginBottom: 6 }}>
+                    {item.description}
+                  </Text>
+                )}
+                {!!item.jobType && (
+                  <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                    Type: {item.jobType}
+                  </Text>
+                )}
+                {!!item.subject && (
+                  <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                    Subject: {item.subject}
+                  </Text>
+                )}
+                {!!item.experience && (
+                  <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                    Experience: {item.experience}
+                  </Text>
+                )}
+                {!!item.timing && (
+                  <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                    Timing: {item.timing}
+                  </Text>
+                )}
+                {!!item.contactEmail && (
+                  <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                    Email: {item.contactEmail}
+                  </Text>
+                )}
+                {!!item.contactPhone && (
+                  <Text style={{ fontSize: 14, color: "#555", marginBottom: 4 }}>
+                    Phone: {item.contactPhone}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
         ))}
 

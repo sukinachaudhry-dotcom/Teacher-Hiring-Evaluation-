@@ -61,6 +61,8 @@ import HirePage from "./Pages/Hirepage";
 import instJobdetails from './Pages/instJobdetails';
 import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import TermAndConditions from "./Pages/TermAndConditions";
+import EditJob from './Pages/EditJob';
+import EditInstitutionProfile from './Pages/EditInstitutionProfile';
 
 const Stack = createNativeStackNavigator();
 
@@ -165,6 +167,8 @@ const InstitutionStack = () => (
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
     <Stack.Screen name="instJobdetails" component={instJobdetails} />
+    <Stack.Screen name="EditJob" component={EditJob} />
+    <Stack.Screen name="EditInstitutionProfile" component={EditInstitutionProfile} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
 

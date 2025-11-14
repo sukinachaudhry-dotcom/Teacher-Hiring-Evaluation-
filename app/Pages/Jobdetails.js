@@ -1,22 +1,33 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const JobDetail = ({ route, navigation }) => {
-  // Example job data (you can also pass via navigation route params)
-  const job = route?.params?.job || {
-    id: "1",
-    name: "City School",
-    type: "Institute",
-    subject: "Mathematics Teacher",
-    location: "Lahore",
-    established: "2005",
-    experience: "3+ Years Required",
-    jobVacancy: "Mathematics Teacher Required (8am to 1pm)",
-    description:
-      "We are looking for an experienced Mathematics Teacher who can teach grades 6–10. The candidate should have strong subject knowledge and good communication skills.",
-    image: require("./School.jpeg"),
-  };
+  const jobId = route?.params?.jobId;
+  const [job, setJob] = useState(null);
+  const [inst, setInst] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        if (!jobId) return;
+        const jref = doc(db, "post jobs", jobId);
+        const jsnap = await getDoc(jref);
+        if (jsnap.exists()) {
+          const jdata = { id: jsnap.id, ...jsnap.data() };
+          setJob(jdata);
+          if (jdata.institutionId) {
+            const iref = doc(db, "users", jdata.institutionId);
+            const isnap = await getDoc(iref);
+            if (isnap.exists()) setInst(isnap.data());
+          }
+        }
+      } catch {}
+    };
+    load();
+  }, [jobId]);
 
   return (
     <ScrollView
@@ -24,37 +35,39 @@ const JobDetail = ({ route, navigation }) => {
       contentContainerStyle={{ padding: 20 }}
     >
       {/* Job Image */}
-      <Image
-        source={job.image}
-        style={{
-          width: "100%",
-          height: 200,
-          borderRadius: 15,
-          marginBottom: 20,
-        }}
-      />
+      {inst?.profileImage ? (
+        <Image
+          source={{ uri: inst.profileImage }}
+          style={{ width: "100%", height: 200, borderRadius: 15, marginBottom: 20 }}
+        />
+      ) : (
+        <Image
+          source={require("./School.jpeg")}
+          style={{ width: "100%", height: 200, borderRadius: 15, marginBottom: 20 }}
+        />
+      )}
 
       {/* Title */}
       <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 10 }}>
-        {job.jobVacancy}
+        {job?.jobTitle || job?.jobVacancy || "Job Details"}
       </Text>
 
       {/*  Teacher Info */}
-      <Text style={{ fontSize: 18, fontWeight: "600" }}>{job.name}</Text>
+      <Text style={{ fontSize: 18, fontWeight: "600" }}>{inst?.institutionname || ""}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
         <Ionicons name="briefcase-outline" size={18} color="#555" style={{ marginRight: 6 }} />
-        <Text style={{ fontSize: 14, color: "#555" }}>{job.type}</Text>
+        <Text style={{ fontSize: 14, color: "#555" }}>{inst?.type || "Institute"}</Text>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
         <Ionicons name="location-outline" size={18} color="#555" style={{ marginRight: 6 }} />
         <Text style={{ fontSize: 14, color: "#555" }}>
-          Location: {job.location}
+          Location: {job?.location || inst?.address || ""}
         </Text>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <Ionicons name="calendar-outline" size={18} color="#555" style={{ marginRight: 6 }} />
         <Text style={{ fontSize: 14, color: "#555" }}>
-          Established: {job.established}
+          Established: {inst?.createdAt ? new Date(inst.createdAt).getFullYear() : ""}
         </Text>
       </View>
 
@@ -77,7 +90,7 @@ const JobDetail = ({ route, navigation }) => {
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
           <Ionicons name="book-outline" size={18} color="#444" style={{ marginRight: 6 }} />
           <Text style={{ fontSize: 14, color: "#444" }}>
-            Subject: {job.subject}
+            Subject: {job?.subject || "N/A"}
           </Text>
         </View>
 
@@ -85,7 +98,7 @@ const JobDetail = ({ route, navigation }) => {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Ionicons name="briefcase-outline" size={18} color="#444" style={{ marginRight: 6 }} />
           <Text style={{ fontSize: 14, color: "#444" }}>
-            Experience: {job.experience}
+            Experience: {job?.experience || "N/A"}
           </Text>
         </View>
       </View>
@@ -107,7 +120,7 @@ const JobDetail = ({ route, navigation }) => {
           Job Description:
         </Text>
         <Text style={{ fontSize: 14, color: "#444", lineHeight: 20 }}>
-          {job.description}
+          {job?.description || ""}
         </Text>
       </View>
 

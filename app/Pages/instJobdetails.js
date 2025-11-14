@@ -137,8 +137,8 @@ const instJobdetails = ({ route, navigation }) => {
         </View>
       ) : null}
 
-      {/* Apply Button */}
-      <TouchableOpacity onPress={() => navigation.navigate("Submitted")}
+      {/* Edit Button */}
+      <TouchableOpacity onPress={() => navigation.navigate("EditInstitutionProfile")}
         style={{
           marginTop: 30,
           backgroundColor: "purple",
