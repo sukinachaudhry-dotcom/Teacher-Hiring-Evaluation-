@@ -63,6 +63,9 @@ import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import TermAndConditions from "./Pages/TermAndConditions";
 import EditJob from './Pages/EditJob';
 import EditInstitutionProfile from './Pages/EditInstitutionProfile';
+import TestList from './Pages/TestList';
+import TakeTest from './Pages/TakeTest';
+import TestResult from './Pages/TestResult';
 
 const Stack = createNativeStackNavigator();
 
@@ -105,7 +108,9 @@ const TeacherStack = () => (
     <Stack.Screen name="ConfirmInterview" component={ConfirmInterview} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
-
+    <Stack.Screen name="TestList" component={TestList} options={{ title: 'Available Tests' }} />
+    <Stack.Screen name="TakeTest" component={TakeTest} options={{ title: 'Take Test' }} />
+    <Stack.Screen name="TestResult" component={TestResult} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 
@@ -171,7 +176,6 @@ const InstitutionStack = () => (
     <Stack.Screen name="EditInstitutionProfile" component={EditInstitutionProfile} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
-
   </Stack.Navigator>
 );
 
