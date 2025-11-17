@@ -310,9 +310,6 @@ export default function App({ navigation }) {
                 ))}
             </View>
 
-
-
-
         </ScrollView>
     );
-}
+} 
