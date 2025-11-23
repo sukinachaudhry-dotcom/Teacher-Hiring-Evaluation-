@@ -6,11 +6,16 @@ import { db, auth } from "../../firebase";
 const JobsScreen = ({navigation}) => {
   const [jobs, setJobs] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const user = auth?.currentUser;
 
   useEffect(() => {
     const uid = auth?.currentUser?.uid;
     if (!uid) return;
-    const q = query(collection(db, "post jobs"), where("institutionId", "==", uid));
+    const q = query(
+      collection(db, "post jobs"), 
+      where("institutionId", "==", uid),
+      where("status", "==", "active")
+    );
     const unsub = onSnapshot(q, (snap) => {
       const list = [];
       snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
@@ -83,9 +88,23 @@ const JobsScreen = ({navigation}) => {
                   paddingVertical: 8,
                   paddingHorizontal: 20,
                   borderRadius: 20,
+                  marginHorizontal: 5,
                 }}
               >
                 <Text style={{ color: "#fff", fontWeight: "bold" }}>Edit</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Applicants", { jobId: item.id })}
+                style={{
+                  backgroundColor: "#4CAF50",
+                  paddingVertical: 8,
+                  paddingHorizontal: 15,
+                  borderRadius: 20,
+                  marginHorizontal: 5,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>View Applicants</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
