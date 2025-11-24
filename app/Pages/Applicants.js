@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,17 +8,23 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { collection, doc, onSnapshot, orderBy, query, where, getDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, where, getDoc, getDocs } from "firebase/firestore";
 import { db, auth } from "../../firebase";
+import { useNavigation } from "@react-navigation/native";
+import { useSelector } from 'react-redux';
 
 export default function Applicants({ route }) {
   const { jobId } = route.params || {};
-  const [applicants, setApplicants] = React.useState([]);
-  const [jobDetails, setJobDetails] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
+  const [applicants, setApplicants] = useState([]);
+  const [jobDetails, setJobDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation();
+  const user = useSelector(state => state.home.user);
 
   // Fetch job details
   React.useEffect(() => {
@@ -38,147 +44,134 @@ export default function Applicants({ route }) {
     fetchJobDetails();
   }, [jobId]);
 
-  // Fetch applicants for the specific job
-  React.useEffect(() => {
-    let userUnsubs = [];
-    setLoading(true);
+  const fetchAllApplications = async () => {
+    if (!user?.uid) return;
     
     try {
-      const instUid = auth?.currentUser?.uid;
-      if (!instUid || !jobId) return;
-
-      // Query applications for this specific job
-      const appsQ = query(
-        collection(db, 'applications'),
-        where('jobId', '==', jobId),
-        orderBy('appliedAt', 'desc')
+      setLoading(true);
+      const allApplications = [];
+      
+      // 1. Get all jobs for this institution
+      const jobsQuery = query(
+        collection(db, 'post jobs'),
+        where('institutionId', '==', user.uid)
       );
-
-      const unsubApps = onSnapshot(appsQ, (snap) => {
-        const applications = [];
-        snap.forEach(doc => {
-          applications.push({ id: doc.id, ...doc.data() });
-        });
-
-        // Clean previous listeners
-        userUnsubs.forEach((u) => u && u());
-        userUnsubs = [];
-
-        if (applications.length === 0) {
-          setApplicants([]);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch teacher details for each application
-        applications.forEach(app => {
-          if (app.teacherUid) {
-            const uUnsub = onSnapshot(doc(db, 'users', app.teacherUid), (uSnap) => {
-              if (uSnap.exists()) {
-                const data = uSnap.data();
-                setApplicants(prev => {
-                  const existing = prev.filter(a => a.uid !== app.teacherUid);
-                  return [
-                    ...existing,
-                    {
-                      ...app,
-                      id: uSnap.id,
-                      name: data?.name || data?.fullname || 'Unnamed',
-                      subject: data?.teachingsubjects || data?.subjects || '',
-                      experience: data?.experience || '',
-                      location: data?.location || data?.address || '',
-                      photoUrl: data?.profileImage || data?.photoUrl || null,
-                      status: app.status || 'Pending',
-                      appliedAt: app.appliedAt?.toDate?.() || new Date(),
-                    }
-                  ];
-                });
-              }
-              setLoading(false);
-            });
-            userUnsubs.push(uUnsub);
+      
+      const jobsSnapshot = await getDocs(jobsQuery);
+      
+      // 2. For each job, get all applications
+      for (const jobDoc of jobsSnapshot.docs) {
+        const jobData = jobDoc.data();
+        const applicationsQuery = query(
+          collection(db, 'applications'),
+          where('jobId', '==', jobDoc.id),
+          orderBy('appliedAt', 'desc')
+        );
+        
+        const applicationsSnapshot = await getDocs(applicationsQuery);
+        
+        // 3. For each application, get applicant info
+        for (const appDoc of applicationsSnapshot.docs) {
+          const appData = appDoc.data();
+          
+          // Only fetch user data if we have a teacher UID
+          if (appData.teacherUid) {
+            const userDoc = await getDoc(doc(db, 'users', appData.teacherUid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              allApplications.push({
+                id: appDoc.id,
+                ...appData,
+                appliedAt: appData.appliedAt?.toDate?.() || new Date(),
+                jobTitle: jobData.jobTitle,
+                jobId: jobDoc.id,
+                applicantInfo: userData,
+                name: userData?.name || userData?.fullname || 'Unnamed',
+                subject: userData?.teachingsubjects || userData?.subjects || '',
+                experience: userData?.experience || '',
+                location: userData?.location || userData?.address || '',
+                photoUrl: userData?.profileImage || userData?.photoUrl || null,
+                status: appData.status || 'pending'
+              });
+            }
           }
-        });
-      }, (error) => {
-        console.error('Error fetching applications:', error);
-        setLoading(false);
-        setApplicants([]);
-      });
-
-      return () => {
-        unsubApps && unsubApps();
-        userUnsubs.forEach((u) => u && u());
-      };
-    } catch (e) {
-      console.error('Error in useEffect:', e);
+        }
+      }
+      
+      setApplicants(allApplications);
       setLoading(false);
-      setApplicants([]);
+      setRefreshing(false);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [jobId]);
+  };
+  
+  // Initial fetch
+  useEffect(() => {
+    fetchAllApplications();
+    
+    // Set up real-time listener for new applications
+    const unsubscribe = onSnapshot(collection(db, 'applications'), () => {
+      fetchAllApplications();
+    });
+    
+    return () => unsubscribe();
+  }, [user?.uid]);
+  
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchAllApplications();
+  };
 
   const renderApplicant = ({ item }) => (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={() => navigation.navigate('ApplicantDetails', { applicant: item })}
+    >
       <View style={styles.row}>
-        <Image 
-          source={item.photoUrl ? { uri: item.photoUrl } : require("./Ali.jpeg")} 
-          style={styles.avatar} 
-        />
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={[
-              styles.statusBadge, 
-              item.status === 'Approved' ? styles.statusApproved : 
-              item.status === 'Rejected' ? styles.statusRejected : 
-              styles.statusPending
-            ]}>
-              {item.status || 'Pending'}
+        {item.photoUrl ? (
+          <Image 
+            source={{ uri: item.photoUrl }} 
+            style={styles.avatar} 
+          />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarText}>
+              {item.name?.[0]?.toUpperCase() || 'A'}
             </Text>
           </View>
+        )}
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+              {item.name}
+            </Text>
+            <Text style={[
+              styles.statusBadge, 
+              item.status === 'accepted' ? styles.statusApproved : 
+              item.status === 'rejected' ? styles.statusRejected : 
+              styles.statusPending
+            ]}>
+              {item.status || 'pending'}
+            </Text>
+          </View>
+          <Text style={styles.jobTitle} numberOfLines={1} ellipsizeMode="tail">
+            {item.jobTitle || 'No Job Title'}
+          </Text>
           <Text style={styles.detail}>
             <Icon name="work" size={14} color="#666" /> {item.subject || 'N/A'}
           </Text>
           <Text style={styles.detail}>
             <Icon name="school" size={14} color="#666" /> {item.experience || 'N/A'} experience
           </Text>
-          <Text style={styles.detail}>
-            <Icon name="location-on" size={14} color="#666" /> {item.location || 'Location not specified'}
-          </Text>
           <Text style={[styles.detail, { color: '#666', fontSize: 12, marginTop: 5 }]}>
             Applied on: {item.appliedAt?.toLocaleDateString?.() || 'N/A'}
           </Text>
         </View>
       </View>
-
-      <View style={styles.actionRow}>
-        <TouchableOpacity 
-          style={[styles.actionBtn, { backgroundColor: '#4A90E2' }]}
-          onPress={() => {
-            // Navigate to teacher profile or show details
-          }}
-        >
-          <Text style={styles.btnText}>View Profile</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionBtn, { backgroundColor: '#4CAF50' }]}
-          onPress={() => {
-            // Handle approve action
-          }}
-        >
-          <Text style={styles.btnText}>Approve</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionBtn, { backgroundColor: '#F44336' }]}
-          onPress={() => {
-            // Handle reject action
-          }}
-        >
-          <Text style={styles.btnText}>Reject</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -192,132 +185,91 @@ export default function Applicants({ route }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <ScrollView>
-        {jobDetails && (
-          <View style={styles.jobHeader}>
-            <Text style={styles.jobTitle}>{jobDetails.jobTitle || 'Job Title'}</Text>
-            <View style={styles.jobMeta}>
-              <Text style={styles.jobMetaText}>
-                <Icon name="location-on" size={14} color="#666" /> {jobDetails.location || 'N/A'}
-              </Text>
-              <Text style={styles.jobMetaText}>
-                <Icon name="attach-money" size={14} color="#666" /> {jobDetails.salary || 'Salary not specified'}
-              </Text>
-              <Text style={styles.jobMetaText}>
-                <Icon name="access-time" size={14} color="#666" /> {jobDetails.jobType || 'Full-time'}
-              </Text>
-            </View>
-            {jobDetails.description && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Job Description</Text>
-                <Text style={styles.jobDescription}>{jobDetails.description}</Text>
-              </View>
-            )}
-            {jobDetails.requirements && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Requirements</Text>
-                <Text style={styles.jobDescription}>{jobDetails.requirements}</Text>
-              </View>
-            )}
+      <FlatList
+        data={applicants}
+        renderItem={renderApplicant}
+        keyExtractor={(item, index) => item.id || index.toString()}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#9B5DE5']}
+            tintColor="#9B5DE5"
+          />
+        }
+        ListHeaderComponent={
+          <View style={styles.headerContainer}>
+            <Text style={styles.headerTitle}>All Applications</Text>
+            <Text style={styles.headerSubtitle}>
+              {applicants.length} application{applicants.length !== 1 ? 's' : ''} found
+            </Text>
           </View>
-        )}
-
-        <View style={styles.applicantsContainer}>
-          <Text style={styles.applicantsHeader}>
-            {applicants.length} {applicants.length === 1 ? 'Applicant' : 'Applicants'}
-          </Text>
-          
-          {applicants.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Icon name="people-outline" size={50} color="#ccc" />
-              <Text style={styles.emptyStateText}>No applicants yet</Text>
-              <Text style={styles.emptyStateSubtext}>Applicants will appear here when they apply to your job posting.</Text>
+        }
+        ListEmptyComponent={
+          !loading && (
+            <View style={styles.emptyContainer}>
+              <Icon name="assignment" size={60} color="#ddd" />
+              <Text style={styles.emptyText}>No applications found</Text>
+              <Text style={styles.emptySubtext}>Applications will appear here when teachers apply to your jobs</Text>
             </View>
-          ) : (
-            <FlatList
-              data={applicants}
-              renderItem={renderApplicant}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-            />
-          )}
-        </View>
-      </ScrollView>
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  jobHeader: {
+  headerContainer: {
     backgroundColor: '#fff',
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  jobTitle: {
+  headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
-  },
-  jobMeta: {
-    marginBottom: 15,
-  },
-  jobMetaText: {
-    color: '#666',
     marginBottom: 5,
+  },
+  headerSubtitle: {
     fontSize: 14,
-  },
-  section: {
-    marginTop: 15,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  jobDescription: {
-    color: '#555',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  applicantsContainer: {
-    padding: 15,
-  },
-  applicantsHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 30,
-  },
-  emptyStateText: {
-    fontSize: 16,
     color: '#666',
-    marginTop: 10,
-    fontWeight: '500',
   },
-  emptyStateSubtext: {
+  listContainer: {
+    paddingBottom: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  emptySubtext: {
     fontSize: 14,
     color: '#999',
-    marginTop: 5,
+    marginTop: 10,
     textAlign: 'center',
+    lineHeight: 20,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 15,
-    marginBottom: 15,
+    marginHorizontal: 15,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
   },
   row: { 
@@ -330,6 +282,16 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 1,
     borderColor: '#eee',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#e9d8fd',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
+    color: '#6B46C1',
+    fontWeight: 'bold',
   },
   name: { 
     fontSize: 16, 
@@ -344,28 +306,38 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 10,
     fontSize: 12,
-    fontWeight: '600',
-  },
-  statusPending: {
-    backgroundColor: '#FFF3E0',
-    color: '#F57C00',
+    textTransform: 'capitalize',
   },
   statusApproved: {
-    backgroundColor: '#E8F5E9',
-    color: '#388E3C',
+    backgroundColor: '#E6F7E6',
+    color: '#2E7D32',
   },
   statusRejected: {
     backgroundColor: '#FFEBEE',
-    color: '#D32F2F',
+    color: '#C62828',
+  },
+  statusPending: {
+    backgroundColor: '#FFF8E1',
+    color: '#F57F17',
+  },
+  actionBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 15,
-    borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 12,
   },

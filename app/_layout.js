@@ -171,7 +171,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="Maths" component={MathCoursesPage} />
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
-    <Stack.Screen name="instJobdetails" component={instJobdetails} />
+    <Stack.Screen name="InstJobdetails" component={instJobdetails} />
     <Stack.Screen name="EditJob" component={EditJob} />
     <Stack.Screen name="EditInstitutionProfile" component={EditInstitutionProfile} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
