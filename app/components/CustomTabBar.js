@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { db } from '../Helper/firebaseHelper';
 import { useSelector } from 'react-redux';
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
@@ -21,16 +21,17 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
         );
         
         const jobsSnapshot = await getDocs(jobsQuery);
-        let count = 0;
+        let totalApplications = 0;
         
+        // Count all applications across all jobs
         for (const jobDoc of jobsSnapshot.docs) {
           const jobData = jobDoc.data();
-          if (jobData.applications) {
-            count += jobData.applications.length;
+          if (jobData.applications && Array.isArray(jobData.applications)) {
+            totalApplications += jobData.applications.length;
           }
         }
         
-        setApplicationCount(count);
+        setApplicationCount(totalApplications);
       } catch (error) {
         console.error('Error fetching applications count:', error);
       }
@@ -39,69 +40,73 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     fetchApplicationsCount();
   }, [user?.uid]);
 
-  return (
-    <View style={styles.tabBar}>
-      {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
-        const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-            ? options.title
-            : route.name;
+  const handleApplicantsPress = (route, isFocused) => {
+    if (!isFocused) {
+      navigation.navigate('Applicants');
+    }
+  };
 
-        const isFocused = state.index === index;
+  const renderTabIcon = (route, index, isFocused) => {
+    const { options } = descriptors[route.key];
+    const label = options.tabBarLabel || options.title || route.name;
 
-        const onPress = () => {
+    let iconName;
+    if (route.name === 'Home') {
+      iconName = isFocused ? 'home' : 'home-outline';
+    } else if (route.name === 'Applicants') {
+      iconName = isFocused ? 'people' : 'people-outline';
+    } else if (route.name === 'Profile') {
+      iconName = isFocused ? 'person' : 'person-outline';
+    } else if (route.name === 'Jobs') {
+      iconName = isFocused ? 'briefcase' : 'briefcase-outline';
+    } else if (route.name === 'Tests') {
+      iconName = isFocused ? 'document-text' : 'document-text-outline';
+    }
+
+    return (
+      <TouchableOpacity
+        key={index}
+        onPress={() => {
           const event = navigation.emit({
             type: 'tabPress',
             target: route.key,
             canPreventDefault: true,
           });
 
-          if (!isFocused && !event.defaultPrevented) {
+          if (route.name === 'Applicants') {
+            handleApplicantsPress(route, isFocused);
+          } else if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }
-        };
-
-        let iconName;
-        if (route.name === 'Home') {
-          iconName = 'home';
-        } else if (route.name === 'Profile') {
-          iconName = 'person';
-        } else if (route.name === 'Jobs') {
-          iconName = 'briefcase';
-        } else if (route.name === 'Applicants') {
-          iconName = 'people';
-        } else if (route.name === 'Tests') {
-          iconName = 'document-text';
-        }
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            onPress={onPress}
-            style={styles.tab}
-          >
-            <View>
-              <Ionicons
-                name={iconName}
-                size={24}
-                color={isFocused ? '#007AFF' : '#8E8E93'}
-              />
-              {route.name === 'Applicants' && applicationCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {applicationCount > 9 ? '9+' : applicationCount}
-                  </Text>
-                </View>
-              )}
+        }}
+        style={styles.tab}
+      >
+        <View style={styles.iconContainer}>
+          <Ionicons
+            name={iconName}
+            size={24}
+            color={isFocused ? '#007AFF' : '#8E8E93'}
+          />
+          {route.name === 'Applicants' && applicationCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {applicationCount > 9 ? '9+' : applicationCount}
+              </Text>
             </View>
-            <Text style={[styles.label, { color: isFocused ? '#007AFF' : '#8E8E93' }]}>
-              {label}
-            </Text>
-          </TouchableOpacity>
-        );
+          )}
+        </View>
+        <Text style={[styles.label, { color: isFocused ? '#007AFF' : '#8E8E93' }]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.tabBar}>
+      {state.routes.map((route, index) => {
+        const isFocused = state.index === index;
+        return renderTabIcon(route, index, isFocused);
       })}
     </View>
   );
@@ -120,6 +125,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 5,
+  },
+  iconContainer: {
+    position: 'relative',
   },
   label: {
     fontSize: 12,
