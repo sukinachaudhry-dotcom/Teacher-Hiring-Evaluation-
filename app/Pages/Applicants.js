@@ -69,6 +69,9 @@ export default function Applicants({ route }) {
         );
         
         const applicationsSnapshot = await getDocs(applicationsQuery);
+
+        console.log("applicatoins" , applicationsSnapshot.docs);
+        
         
         // 3. For each application, get applicant info
         for (const appDoc of applicationsSnapshot.docs) {
