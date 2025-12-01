@@ -14,27 +14,43 @@ import { useFocusEffect } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import { getDataById } from "../Helper/firebaseHelper";
 
-export default function StudentProfileView({ navigation }) {
+export default function StudentProfileView({ navigation, route }) {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Get teacherId from route params if viewing a teacher profile
+  const teacherId = route?.params?.teacherId;
 
-  const fetchStudentProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        Alert.alert("Error", "User not logged in");
-        setLoading(false);
-        return;
-      }
-
-      const data = await getDataById("users", user.uid);
-      if (data) {
-        setProfileData(data);
+      
+      // If teacherId is provided, fetch teacher's profile, otherwise fetch student's own profile
+      if (teacherId) {
+        // Fetch teacher profile
+        const data = await getDataById("users", teacherId);
+        if (data) {
+          setProfileData(data);
+        } else {
+          Alert.alert("Error", "Teacher profile not found");
+        }
       } else {
-        Alert.alert("Error", "Profile not found");
+        // Fetch student's own profile
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+          Alert.alert("Error", "User not logged in");
+          setLoading(false);
+          return;
+        }
+
+        const data = await getDataById("users", user.uid);
+        if (data) {
+          setProfileData(data);
+        } else {
+          Alert.alert("Error", "Profile not found");
+        }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -42,12 +58,12 @@ export default function StudentProfileView({ navigation }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [teacherId]);
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchStudentProfile();
-    }, [fetchStudentProfile])
+      fetchProfile();
+    }, [fetchProfile])
   );
 
   // Helper function to get label from value
@@ -94,6 +110,68 @@ export default function StudentProfileView({ navigation }) {
     return modeData[value] || value;
   };
 
+  // Helper functions for teacher-specific fields
+  const getQualificationLabel = (value) => {
+    const qualData = {
+      matric: "Matric",
+      intermediate: "Intermediate",
+      bachelor: "Bachelor",
+      master: "Master",
+      courses: "Courses",
+    };
+    return qualData[value] || value;
+  };
+
+  const getTeachingLevelLabel = (value) => {
+    const levelData = {
+      primary: "Primary (Grade 1–5)",
+      middle: "Middle (Grade 6–8)",
+      highschool: "High School (Grade 9–10)",
+      intermediate: "Intermediate (Grade 11–12)",
+      undergrad: "Undergraduate (Bachelor's Level)",
+      postgrad: "Postgraduate (Master's/PhD Level)",
+      professional: "Professional Courses (IT, Skills, Test Prep)",
+    };
+    return levelData[value] || value;
+  };
+
+  const getTeachingTypeLabel = (value) => {
+    const typeData = {
+      home: "Home Tuition",
+      school: "School/College",
+      online: "Online Classes",
+      exam: "Courses",
+    };
+    return typeData[value] || value;
+  };
+
+  const getAvailabilityLabel = (value) => {
+    const availData = {
+      morning: "Morning (8am–12pm)",
+      afternoon: "Afternoon (12pm–4pm)",
+      evening: "Evening (4pm–8pm)",
+      night: "Night (After 8pm)",
+      weekdays: "Weekdays Only",
+      weekends: "Weekends Only",
+      flexible: "Flexible",
+    };
+    return availData[value] || value;
+  };
+
+  const getLanguageLabel = (value) => {
+    const langData = {
+      english: "English",
+      urdu: "Urdu",
+      french: "French",
+      spanish: "Spanish",
+      arabic: "Arabic",
+    };
+    return langData[value] || value;
+  };
+
+  // Check if viewing teacher profile
+  const isTeacherProfile = teacherId || profileData?.role === 'Teacher';
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
@@ -108,7 +186,7 @@ export default function StudentProfileView({ navigation }) {
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
         <Text style={{ color: "#666", fontSize: 16 }}>No profile data found</Text>
         <TouchableOpacity
-          onPress={fetchStudentProfile}
+          onPress={fetchProfile}
           style={[styles.editBtn, { marginTop: 20 }]}
         >
           <Text style={styles.editBtnText}>Retry</Text>
@@ -119,21 +197,46 @@ export default function StudentProfileView({ navigation }) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
-      
-        <Image 
-         source={require("./splash.jpeg")}
-          style={styles.avatar} 
-        />
-      
+      {/* Profile Image */}
+      <Image 
+        source={
+          profileData.photoUrl || profileData.profileImage 
+            ? { uri: profileData.photoUrl || profileData.profileImage } 
+            : require("./splash.jpeg")
+        }
+        style={styles.avatar} 
+      />
 
       {/* Profile Info */}
       <View style={{ alignItems: "center", marginTop: 70 }}>
-        <Text style={styles.name}>{profileData.fullname || "Student Name"}</Text>
-        <Text style={styles.role}>Student</Text>
-        <Text style={styles.subject}>{getSubjectLabel(profileData.subjects)}</Text>
-        <Text style={styles.availability}>
-          {getClassLabel(profileData.selectclass) || "Class not specified"}
+        <Text style={styles.name}>
+          {isTeacherProfile ? (profileData.name || "Teacher Name") : (profileData.fullname || "Student Name")}
         </Text>
+        <Text style={styles.role}>
+          {isTeacherProfile ? "Teacher" : "Student"}
+        </Text>
+        {isTeacherProfile ? (
+          <>
+            <Text style={styles.subject}>
+              {getSubjectLabel(profileData.teachingsubjects) || "Subject not specified"}
+            </Text>
+            <Text style={styles.availability}>
+              {profileData.location || "Location not specified"}
+            </Text>
+            {profileData.experience && (
+              <Text style={styles.availability}>
+                Experience: {profileData.experience}
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.subject}>{getSubjectLabel(profileData.subjects)}</Text>
+            <Text style={styles.availability}>
+              {getClassLabel(profileData.selectclass) || "Class not specified"}
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Profile Details */}
@@ -145,47 +248,146 @@ export default function StudentProfileView({ navigation }) {
           <Text style={styles.detailValue}>{profileData.email || "N/A"}</Text>
         </View>
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Phone Number:</Text>
-          <Text style={styles.detailValue}>{profileData.phonenumber || "N/A"}</Text>
-        </View>
+        {isTeacherProfile ? (
+          <>
+            {/* Teacher-specific fields */}
+            {profileData.experience && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Experience:</Text>
+                <Text style={styles.detailValue}>{profileData.experience}</Text>
+              </View>
+            )}
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Address:</Text>
-          <Text style={styles.detailValue}>{profileData.address || "N/A"}</Text>
-        </View>
+            {profileData.location && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Location:</Text>
+                <Text style={styles.detailValue}>{profileData.location}</Text>
+              </View>
+            )}
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Class:</Text>
-          <Text style={styles.detailValue}>
-            {getClassLabel(profileData.selectclass) || "N/A"}
-          </Text>
-        </View>
+            {profileData.highestqualification && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Highest Qualification:</Text>
+                <Text style={styles.detailValue}>
+                  {getQualificationLabel(profileData.highestqualification)}
+                </Text>
+              </View>
+            )}
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Subject:</Text>
-          <Text style={styles.detailValue}>
-            {getSubjectLabel(profileData.subjects) || "N/A"}
-          </Text>
-        </View>
+            {profileData.preferredteachinglevel && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Preferred Teaching Level:</Text>
+                <Text style={styles.detailValue}>
+                  {getTeachingLevelLabel(profileData.preferredteachinglevel)}
+                </Text>
+              </View>
+            )}
 
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Mode of Teaching:</Text>
-          <Text style={styles.detailValue}>
-            {getModeLabel(profileData.modeofteaching) || "N/A"}
-          </Text>
-        </View>
+            {profileData.preferredteachingtype && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Preferred Teaching Type:</Text>
+                <Text style={styles.detailValue}>
+                  {getTeachingTypeLabel(profileData.preferredteachingtype)}
+                </Text>
+              </View>
+            )}
+
+            {profileData.teachingsubjects && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Teaching Subject:</Text>
+                <Text style={styles.detailValue}>
+                  {getSubjectLabel(profileData.teachingsubjects)}
+                </Text>
+              </View>
+            )}
+
+            {profileData.availability && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Availability:</Text>
+                <Text style={styles.detailValue}>
+                  {getAvailabilityLabel(profileData.availability)}
+                </Text>
+              </View>
+            )}
+
+            {profileData.languageknown && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Language Known:</Text>
+                <Text style={styles.detailValue}>
+                  {getLanguageLabel(profileData.languageknown)}
+                </Text>
+              </View>
+            )}
+
+            {profileData.introduction && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Introduction:</Text>
+                <Text style={styles.detailValue}>{profileData.introduction}</Text>
+              </View>
+            )}
+
+            {profileData.resume && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Resume:</Text>
+                <Text style={styles.detailValue}>Available</Text>
+              </View>
+            )}
+
+            {profileData.certificates && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Certificates:</Text>
+                <Text style={styles.detailValue}>Available</Text>
+              </View>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Student-specific fields */}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Phone Number:</Text>
+              <Text style={styles.detailValue}>{profileData.phonenumber || "N/A"}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Address:</Text>
+              <Text style={styles.detailValue}>{profileData.address || "N/A"}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Class:</Text>
+              <Text style={styles.detailValue}>
+                {getClassLabel(profileData.selectclass) || "N/A"}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Subject:</Text>
+              <Text style={styles.detailValue}>
+                {getSubjectLabel(profileData.subjects) || "N/A"}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Mode of Teaching:</Text>
+              <Text style={styles.detailValue}>
+                {getModeLabel(profileData.modeofteaching) || "N/A"}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
 
-      {/* Edit Button */}
-      <View style={styles.editButtonContainer}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("EditStudentProfile", { profileData })}
-          style={styles.editBtn}
-        >
-          <Text style={styles.editBtnText}>Edit Profile</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Edit Button - Only show for student's own profile */}
+      {!isTeacherProfile && (
+        <View style={styles.editButtonContainer}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("EditStudentProfile", { profileData })}
+            style={styles.editBtn}
+          >
+            <Text style={styles.editBtnText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScrollView>
   );
 }

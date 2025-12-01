@@ -16,78 +16,172 @@ export default function App({ navigation }) {
       ]);
     const [teachers, setTeachers] = React.useState([]);
     const [recentTeachers, setRecentTeachers] = React.useState([]);
+    const [categories, setCategories] = React.useState([]);
 
     React.useEffect(() => {
         try {
-            const q = query(collection(db, 'sliders'), where('role', '==', 'student'), orderBy('order', 'asc'));
+            // Query without orderBy to avoid needing a composite index
+            // We'll sort the results in JavaScript instead
+            const q = query(collection(db, 'sliders'), where('role', '==', 'student'));
             const unsub = onSnapshot(q, (snap) => {
                 const arr = [];
                 snap.forEach((doc) => {
                     const d = doc.data();
-                    if (d && d.url) arr.push(d.url);
+                    if (d && d.url) {
+                        arr.push({
+                            url: d.url,
+                            order: d.order || 0, // Get order value for sorting
+                        });
+                    }
                 });
-                if (arr.length) setImages(arr);
+                // Sort by order in JavaScript (ascending)
+                arr.sort((a, b) => (a.order || 0) - (b.order || 0));
+                // Extract just the URLs after sorting
+                const sortedUrls = arr.map(item => item.url);
+                if (sortedUrls.length) setImages(sortedUrls);
+            }, (error) => {
+                console.error('slider subscribe error', error);
             });
             return () => unsub();
         } catch (e) {
-            console.log('slider subscribe error', e);
+            console.error('slider subscribe error', e);
+        }
+    }, []);
+
+    // Fetch categories from Firestore collection "categories student"
+    React.useEffect(() => {
+        try {
+            // Query the "categories student" collection
+            // Note: Collection name has a space: "categories student"
+            const q = query(collection(db, 'categories student'));
+            const unsub = onSnapshot(q, (snap) => {
+                const catArray = [];
+                snap.forEach((doc) => {
+                    const data = doc.data();
+                    // Get document ID as cid and add it to the data
+                    catArray.push({
+                        id: doc.id, // Document ID (cid)
+                        cid: doc.id, // Also store as cid for consistency
+                        icon: data.icon || 'book-outline', // Icon name from Firestore
+                        title: data.title || 'Category', // Title from Firestore
+                    });
+                });
+                console.log('Fetched categories:', catArray.length, 'items');
+                setCategories(catArray);
+            }, (error) => {
+                // Error callback for onSnapshot
+                console.error('Error fetching categories:', error);
+                setCategories([]);
+            });
+            return () => unsub();
+        } catch (e) {
+            console.error('categories subscribe error', e);
+            setCategories([]);
         }
     }, []);
 
     // Fetch Popular Teachers - sorted by experience (or createdAt as fallback)
     React.useEffect(() => {
         try {
+            // Query without orderBy to avoid needing a composite index
+            // We'll sort in JavaScript instead
             const q = query(
                 collection(db, 'users'),
-                where('role', '==', 'Teacher'),
-                orderBy('createdAt', 'desc')
+                where('role', '==', 'Teacher')
             );
             const unsub = onSnapshot(q, (snap) => {
                 const arr = [];
+                const now = new Date();
+                const fifteenDaysAgo = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000)); // 15 days ago
+                
                 snap.forEach((doc) => {
                     const d = doc.data();
-                    // Extract experience years for sorting
+                    // Extract experience years for sorting - handle formats like "2 Years", "2+ Years", "2 years", etc.
                     const expStr = (d?.experience ?? '').toString();
+                    // Extract first number from experience string
                     const years = Number(expStr.match(/\d+/)?.[0] || 0);
+                    
+                    // Check if teacher has enough experience (2 years or more)
+                    // This includes exactly 2 years as well
+                    const hasEnoughExperience = years >= 2;
+                    
+                    // Check if account is old enough (created 15+ days ago)
+                    const accountCreatedAt = d.createdAt ? new Date(d.createdAt) : null;
+                    const isOldAccount = accountCreatedAt && accountCreatedAt.getTime() < fifteenDaysAgo.getTime();
+                    
+                    // Only add if both conditions are met (more experience AND old account)
+                    if (hasEnoughExperience && isOldAccount) {
                     arr.push({ 
                         id: doc.id, 
                         ...d,
                         experienceYears: years
                     });
+                    }
                 });
-                // Sort by experience (popular teachers have more experience)
-                arr.sort((a, b) => (b.experienceYears || 0) - (a.experienceYears || 0));
+                
+                // Sort by experience (highest first), then by account age (oldest first)
+                arr.sort((a, b) => {
+                    // First sort by experience
+                    const expDiff = (b.experienceYears || 0) - (a.experienceYears || 0);
+                    if (expDiff !== 0) return expDiff;
+                    
+                    // If experience is same, sort by account age (oldest first)
+                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return aTime - bTime; // Ascending (oldest first)
+                });
+                
                 setTeachers(arr);
+            }, (error) => {
+                console.error('popular teachers subscribe error', error);
             });
             return () => unsub();
         } catch (e) {
-            console.log('popular teachers subscribe error', e);
+            console.error('popular teachers subscribe error', e);
         }
     }, []);
 
-    // Fetch Recent Teachers - sorted by createdAt (most recent first)
+    // Fetch Recent Teachers - only teachers who recently created accounts
     React.useEffect(() => {
         try {
+            // Query without orderBy to avoid needing a composite index
+            // We'll sort by createdAt in JavaScript instead
             const q = query(
                 collection(db, 'users'),
-                where('role', '==', 'Teacher'),
-                orderBy('createdAt', 'desc')
+                where('role', '==', 'Teacher')
             );
             const unsub = onSnapshot(q, (snap) => {
                 const arr = [];
+                const now = new Date();
+                const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago
+                
                 snap.forEach((doc) => {
                     const d = doc.data();
-                    arr.push({ 
-                        id: doc.id, 
-                        ...d
-                    });
+                    // Check if account was created recently (within last 30 days)
+                    const accountCreatedAt = d.createdAt ? new Date(d.createdAt) : null;
+                    const isRecentAccount = accountCreatedAt && accountCreatedAt.getTime() >= thirtyDaysAgo.getTime();
+                    
+                    // Only add teachers with recently created accounts
+                    if (isRecentAccount) {
+                        arr.push({ 
+                            id: doc.id, 
+                            ...d
+                        });
+                    }
                 });
-                // Already sorted by createdAt desc from query
+                // Sort by createdAt desc (most recent first)
+                arr.sort((a, b) => {
+                    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return bTime - aTime; // Descending order (most recent first)
+                });
                 setRecentTeachers(arr);
+            }, (error) => {
+                console.error('recent teachers subscribe error', error);
             });
             return () => unsub();
         } catch (e) {
-            console.log('recent teachers subscribe error', e);
+            console.error('recent teachers subscribe error', e);
         }
     }, []);
 
@@ -156,71 +250,52 @@ export default function App({ navigation }) {
                 </Text>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
-          {/* Computer */}
-          <TouchableOpacity onPress={() => navigation.navigate("Computer")}>
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <Ionicons name="laptop-outline" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Computer</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Physics */}
-          <TouchableOpacity onPress={() => navigation.navigate("Physics")}>
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="atom" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Physics</Text>
-            </View>
-          </TouchableOpacity>
-          {/* Chemistry */}
-          <TouchableOpacity onPress={() => navigation.navigate("CoursesJobs")}>
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="book-open-page-variant" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Course</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Maths")}>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="calculator" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Math</Text>
-            </View>
-          </TouchableOpacity>
-          {/* <TouchableOpacity>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="dna" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Biology</Text>
-            </View>
-          </TouchableOpacity> */}
-
-          {/* Islamiyat */}
-          {/* <TouchableOpacity>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="mosque" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>Islamiyat</Text>
-            </View>
-          </TouchableOpacity> */}
-
-          {/* History */}
-          {/* <TouchableOpacity>
-            <View style={{ marginHorizontal: 10, alignItems: "center" }}>
-              <View style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
-                <MaterialCommunityIcons name="history" size={30} color="#000" />
-              </View>
-              <Text style={{ marginTop: 5 }}>History</Text>
-            </View>
-          </TouchableOpacity> */}
-        </ScrollView>
+                    {categories.length === 0 ? (
+                        <View style={{ marginHorizontal: 10, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ color: '#555' }}>Loading categories...</Text>
+                        </View>
+                    ) : (
+                        categories.map((cat) => (
+                            <TouchableOpacity
+                                key={cat.id || cat.cid}
+                                onPress={() => {
+                                    // Navigate based on category title
+                                    // Map category titles to navigation routes (case-insensitive)
+                                    const categoryTitle = (cat.title || '').trim();
+                                    const pageMap = {
+                                        'computer': 'Computer',
+                                        'physics': 'Physics',
+                                        'math': 'Maths',
+                                        'maths': 'Maths',
+                                        'chemistry': 'Chemistry',
+                                        'courses': 'CoursesJobs',
+                                        // Only include routes that exist in navigation stack
+                                    };
+                                    
+                                    // Get route name (case-insensitive lookup)
+                                    const routeName = pageMap[categoryTitle.toLowerCase()];
+                                    
+                                    // Only navigate if route exists in pageMap
+                                    if (routeName) {
+                                        navigation.navigate(routeName);
+                                    } else {
+                                        // For categories without specific pages, navigate to Viewall
+                                        // This will show all teachers and user can filter manually
+                                        navigation.navigate('Viewall', { category: categoryTitle });
+                                    }
+                                }}
+                            >
+                                <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
+                                <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
+                                        {/* Display icon from Firestore - using Ionicons */}
+                                    <Ionicons name={cat.icon || 'grid-outline'} size={30} color="#000" />
+                                </View>
+                                <Text style={{ marginTop: 5 }}>{cat.title || 'Category'}</Text>
+                            </View>
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </ScrollView>
 
                 {/* Popular Teachers Section */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 20 }}>

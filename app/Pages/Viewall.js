@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,242 +6,264 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  SafeAreaView,
 } from "react-native";
-import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { db, auth } from "../../firebase";
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 export default function Viewall({ navigation, route }) {
-  const mode = route?.params?.mode === 'recent' ? 'recent' : 'popular';
-  const [teachers, setTeachers] = React.useState([]);
-
-  React.useEffect(() => {
-    let userUnsubs = [];
+  const [search, setSearch] = useState("");
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Get mode from route params (popular or recent)
+  const mode = route?.params?.mode || 'popular';
+  
+  // Fetch teachers from Firestore
+  useEffect(() => {
     try {
-      const instUid = auth?.currentUser?.uid;
-      if (!instUid) return;
-
-      // Get applications for this institution
-      const appsQ = query(
-        collection(db, 'applications'),
-        where('institutionUid', '==', instUid),
-        orderBy('createdAt', 'desc')
+      setLoading(true);
+      // Query all teachers
+      const q = query(
+        collection(db, 'users'),
+        where('role', '==', 'Teacher')
       );
-
-      const unsubApps = onSnapshot(appsQ, (snap) => {
-        const applicantTeacherUids = [];
-        snap.forEach((d) => {
-          const a = d.data();
-          if (a && a.teacherUid && !applicantTeacherUids.includes(a.teacherUid)) {
-            applicantTeacherUids.push(a.teacherUid);
-          }
-        });
-
-        // cleanup previous
-        userUnsubs.forEach((u) => u && u());
-        userUnsubs = [];
-
-        // Subscribe to those teachers' user docs
-        const teacherMap = {};
-        applicantTeacherUids.forEach((uid) => {
-          const uUnsub = onSnapshot(doc(db, 'users', uid), (uSnap) => {
-            if (uSnap.exists()) {
-              const data = uSnap.data();
-              // derive numeric years from various formats like "+5 Years Exp", 3, "3", etc.
-              const expStr = (data?.experience ?? '').toString();
-              const years = Number(expStr.match(/\d+/)?.[0] || 0);
-              teacherMap[uid] = {
-                id: uid,
-                name: data?.name || data?.fullname || 'Unnamed',
-                teachingsubjects: data?.teachingsubjects || data?.subjects || '',
-                location: data?.location || data?.address || '',
-                experience: expStr,
-                experienceYears: years,
-                photoUrl: data?.profileImage || data?.photoUrl || null,
-              };
-            } else {
-              delete teacherMap[uid];
-            }
-
-            // Sort by experience based on mode
-            const arr = Object.values(teacherMap);
-            arr.sort((a, b) => {
-              if (mode === 'popular') return b.experienceYears - a.experienceYears;
-              return a.experienceYears - b.experienceYears;
-            });
-            setTeachers(arr);
+      
+      const unsub = onSnapshot(q, (snap) => {
+        const teacherArray = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
+          // Extract experience years for sorting
+          const expStr = (data?.experience ?? '').toString();
+          const years = Number(expStr.match(/\d+/)?.[0] || 0);
+          
+          teacherArray.push({
+            id: doc.id,
+            name: data.name || 'Unnamed',
+            teachingsubjects: data.teachingsubjects || '',
+            experience: data.experience || '',
+            location: data.location || '',
+            photoUrl: data.photoUrl || data.profileImage || null,
+            createdAt: data.createdAt || '',
+            experienceYears: years,
+            ...data
           });
-          userUnsubs.push(uUnsub);
         });
+        
+        // Filter and sort based on mode
+        let filteredArray = teacherArray;
+        
+        if (mode === 'popular') {
+          // Filter: Show only teachers with more experience (2+ years) AND old accounts (15+ days old)
+          const now = new Date();
+          const fifteenDaysAgo = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000)); // 15 days ago
+          
+          filteredArray = teacherArray.filter((teacher) => {
+            // Check experience: 2 years or more (includes exactly 2 years)
+            const hasEnoughExperience = (teacher.experienceYears || 0) >= 2;
+            
+            // Check account age: created at least 15 days ago
+            const accountCreatedAt = teacher.createdAt ? new Date(teacher.createdAt) : null;
+            const isOldAccount = accountCreatedAt && accountCreatedAt.getTime() < fifteenDaysAgo.getTime();
+            
+            // Show only if both conditions are met
+            return hasEnoughExperience && isOldAccount;
+          });
+          
+          // Sort by experience (highest first), then by account age (oldest first)
+          filteredArray.sort((a, b) => {
+            // First sort by experience
+            const expDiff = (b.experienceYears || 0) - (a.experienceYears || 0);
+            if (expDiff !== 0) return expDiff;
+            
+            // If experience is same, sort by account age (oldest first)
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return aTime - bTime; // Ascending (oldest first)
+          });
+        } else if (mode === 'recent') {
+          // Filter: Show only teachers who recently created accounts (within last 30 days)
+          const now = new Date();
+          const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago
+          
+          filteredArray = teacherArray.filter((teacher) => {
+            // Check if account was created recently (within last 30 days)
+            const accountCreatedAt = teacher.createdAt ? new Date(teacher.createdAt) : null;
+            return accountCreatedAt && accountCreatedAt.getTime() >= thirtyDaysAgo.getTime();
+          });
+          
+          // Sort by createdAt (most recent first)
+          filteredArray.sort((a, b) => {
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return bTime - aTime; // Descending order (most recent first)
+          });
+        }
+        
+        setTeachers(filteredArray);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching teachers:', error);
+        setLoading(false);
+      });
 
-        if (applicantTeacherUids.length === 0) setTeachers([]);
-      }, () => setTeachers([]));
-
-      return () => {
-        unsubApps && unsubApps();
-        userUnsubs.forEach((u) => u && u());
-      };
+      return () => unsub();
     } catch (e) {
-      console.log('viewall subscribe error', e);
+      console.error('Error setting up teachers query:', e);
+      setLoading(false);
     }
-  }, [route?.params?.mode]);
+  }, [mode]);
+
+  // Search filter
+  const filteredTeachers = teachers.filter((teacher) =>
+    teacher.name.toLowerCase().includes(search.toLowerCase()) ||
+    (teacher.teachingsubjects || '').toLowerCase().includes(search.toLowerCase()) ||
+    (teacher.location || '').toLowerCase().includes(search.toLowerCase())
+  );
 
   const TeacherCard = ({ teacher }) => (
     <View
       style={{
         width: "48%",
-        backgroundColor: "#d8b4e2",
+        backgroundColor: '#fff',
+        borderRadius: 10,
         padding: 10,
-        borderRadius: 12,
         marginBottom: 15,
-        borderWidth: 2,
-        borderColor: "purple",
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
       }}
     >
       <Image
-        source={teacher.photoUrl ? { uri: teacher.photoUrl } : require("./Ali.jpeg")}
-        style={{
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          alignSelf: "center",
-        }}
+        source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+        style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
       />
-      <Text style={{ marginTop: 5, fontWeight: "bold", textAlign: "center" }}>
-        {teacher.name}
-      </Text>
-      <Text style={{ marginTop: 2, fontWeight: "bold", textAlign: "center" }}>
-        {teacher.teachingsubjects || ''}
-      </Text>
-      <Text style={{ marginTop: 2, color: "#555", textAlign: "center" }}>
-        {teacher.location || ''}
-      </Text>
-      <Text style={{ marginTop: 2, color: "#555", textAlign: "center" }}>
-        {teacher.experience || ''}
-      </Text>
+      <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
+      <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
+      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
+      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
 
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginTop: 10,
-        }}
-      >
+      {/* Buttons */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
         <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: "purple",
-            padding: 8,
-            marginHorizontal: 3,
-            borderRadius: 20,
-          }}
-          onPress={() => navigation.navigate("Instituteviewprofile")}
+          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
+          onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
         >
-          <Text style={{ color: "#fff", textAlign: "center" }}>Detail</Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: "purple",
-            padding: 8,
-            marginHorizontal: 3,
-            borderRadius: 20,
-          }}
+          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
           onPress={() => navigation.navigate("Chat")}
         >
-          <Text style={{ color: "#fff", textAlign: "center" }}>Chat</Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <ScrollView style={{ backgroundColor: "#fff", flex: 1 }}>
-      {/* 🔍 Search Bar */}
-      <View
-        style={{
-          backgroundColor: "purple",
-          paddingVertical: 20,
-          paddingHorizontal: 10,
-        }}
-      >
-        
-         <TextInput
-          placeholder="Search Jobs"
-          placeholderTextColor="#999"
-          style={{
-            // flex: 1,
-            backgroundColor: '#fff',
-            marginHorizontal: 10,
-            borderRadius: 20,
-            paddingHorizontal: 15,
-            height: 40,
-            
-          }}
-        />
-      </View>
-
-      {/* 📌 Menu Buttons */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginVertical: 10 }}
-      >
-        <View style={{ flexDirection: "row" }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("PopularTeachers")}
-            style={{
-              backgroundColor: "purple",
-              paddingVertical: 12,
-              paddingHorizontal: 20,
-              borderRadius: 50,
-              marginLeft: 8,
-            }}
-          >
-            <Text onPress={()=> navigation.navigate("Popularteachers")} style={{ fontSize: 14, fontWeight: "bold", color: "white" }}>
-              Popular Teachers
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("RecentTeachers")}
-            style={{
-              backgroundColor: "purple",
-              paddingVertical: 12,
-              paddingHorizontal: 20,
-              borderRadius: 50,
-              marginLeft: 8,
-            }}
-          >
-            <Text onPress={()=> navigation.navigate("Recentteacher")} style={{ fontSize: 14, fontWeight: "bold", color: "white" }}>
-              Recent Teachers
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* 👨‍🏫 Teacher Cards */}
-      <View style={{ paddingHorizontal: 10 }}>
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: "bold",
-            color: "purple",
-            marginVertical: 10,
-          }}
-        >
-          All Teachers
-        </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <ScrollView style={{ backgroundColor: "#fff", flex: 1 }}>
+        {/* 🔍 Search Bar */}
         <View
           style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
+            backgroundColor: "purple",
+            paddingVertical: 20,
+            paddingHorizontal: 10,
           }}
         >
-          {teachers.map((t, i) => (
-            <TeacherCard key={i} teacher={t} />
-          ))}
+          <TextInput
+            placeholder="Search Teachers"
+            placeholderTextColor="#999"
+            value={search}
+            onChangeText={setSearch}
+            style={{
+              backgroundColor: '#fff',
+              marginHorizontal: 10,
+              borderRadius: 20,
+              paddingHorizontal: 15,
+              height: 40,
+            }}
+          />
         </View>
-      </View>
-    </ScrollView>
+
+        {/* 📌 Mode Toggle Buttons */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginVertical: 10 }}
+        >
+          <View style={{ flexDirection: "row" }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Viewall", { mode: 'popular' })}
+              style={{
+                backgroundColor: mode === 'popular' ? "purple" : "#d8b4e2",
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                borderRadius: 50,
+                marginLeft: 8,
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "bold", color: mode === 'popular' ? "white" : "#333" }}>
+                Popular Teachers
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Viewall", { mode: 'recent' })}
+              style={{
+                backgroundColor: mode === 'recent' ? "purple" : "#d8b4e2",
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                borderRadius: 50,
+                marginLeft: 8,
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "bold", color: mode === 'recent' ? "white" : "#333" }}>
+                Recent Teachers
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* 👨‍🏫 Teacher Cards */}
+        <View style={{ paddingHorizontal: 10 }}>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              color: "purple",
+              marginVertical: 10,
+            }}
+          >
+            {mode === 'popular' ? 'All Popular Teachers' : 'All Recent Teachers'}
+          </Text>
+          
+          {loading ? (
+            <Text style={{ textAlign: "center", marginTop: 20, color: "gray" }}>
+              Loading teachers...
+            </Text>
+          ) : (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+              }}
+            >
+              {filteredTeachers.length > 0 ? (
+                filteredTeachers.map((teacher, index) => (
+                  <TeacherCard key={teacher.id || index} teacher={teacher} />
+                ))
+              ) : (
+                <Text style={{ textAlign: "center", marginTop: 20, color: "gray", width: '100%' }}>
+                  No teachers found
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

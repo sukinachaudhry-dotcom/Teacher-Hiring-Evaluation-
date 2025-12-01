@@ -1,5 +1,5 @@
 // MathCoursesPage.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,49 +10,81 @@ import {
   SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 export default function MathCoursesPage({ navigation }) {
   const [search, setSearch] = useState("");
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Math Courses Data
-  const mathCourses = [
-    {
-      name: "Algebra Basics",
-      desc: "Learn equations, polynomials, and linear functions",
-      exp: "8 Modules",
-      img: require("./Ali.jpeg"),
-    },
-    {
-      name: "Geometry",
-      desc: "Shapes, angles, theorems, and constructions",
-      exp: "10 Modules",
-      img: require("./Ali.jpeg"),
-    },
-    {
-      name: "Calculus",
-      desc: "Differentiation & Integration with applications",
-      exp: "12 Modules",
-      img: require("./Ali.jpeg"),
-    },
-    {
-      name: "Statistics",
-      desc: "Probability, data analysis, and distributions",
-      exp: "9 Modules",
-      img: require("./Ali.jpeg"),
-    },
-  ];
+  // Map category titles to subject values in database
+  // Subject values are stored as: "math", "physics", "chemistry", etc.
+  const subjectMapping = {
+    'Math': 'math',
+    'Maths': 'math',
+    'Computer': 'cs',
+    'Physics': 'physics',
+    'Chemistry': 'chemistry',
+    'Biology': 'biology',
+    'English': 'english',
+    'Urdu': 'urdu',
+  };
+
+  // Get the subject value for filtering (default to 'math' for this page)
+  const subjectValue = 'math';
+
+  // Fetch teachers from Firestore filtered by subject
+  useEffect(() => {
+    try {
+      setLoading(true);
+      // Query teachers where teachingsubjects matches the subject
+      const q = query(
+        collection(db, 'users'),
+        where('role', '==', 'Teacher'),
+        where('teachingsubjects', '==', subjectValue)
+      );
+      
+      const unsub = onSnapshot(q, (snap) => {
+        const teacherArray = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
+          teacherArray.push({
+            id: doc.id,
+            name: data.name || 'Unnamed',
+            teachingsubjects: data.teachingsubjects || '',
+            experience: data.experience || '',
+            location: data.location || '',
+            photoUrl: data.photoUrl || data.profileImage || null,
+            ...data
+          });
+        });
+        setTeachers(teacherArray);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching math teachers:', error);
+        setLoading(false);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.error('Error setting up math teachers query:', e);
+      setLoading(false);
+    }
+  }, []);
 
   // ✅ Search Filter
-  const filteredCourses = mathCourses.filter((course) =>
-    course.name.toLowerCase().includes(search.toLowerCase())
+  const filteredTeachers = teachers.filter((teacher) =>
+    teacher.name.toLowerCase().includes(search.toLowerCase()) ||
+    (teacher.teachingsubjects || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  // ✅ Course Card Component
-  const CourseCard = ({ course }) => (
+  // ✅ Teacher Card Component
+  const TeacherCard = ({ teacher }) => (
     <View
       style={{
         width: "48%",
-        backgroundColor: "#d8b4e2",
+        backgroundColor: '#fff',
         borderRadius: 10,
         padding: 10,
         marginBottom: 15,
@@ -60,72 +92,30 @@ export default function MathCoursesPage({ navigation }) {
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
-        
-        
       }}
     >
       <Image
-        source={course.img}
-        style={{
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          alignSelf: "center",
-        }}
+        source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+        style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
       />
-      <Text
-        style={{
-          marginTop: 5,
-          fontWeight: "bold",
-          textAlign: "center",
-         
-        }}
-      >
-        {course.name}
-      </Text>
-      <Text style={{ marginTop: 2, color: "#555", textAlign: "center" }}>
-        {course.desc}
-      </Text>
-      <Text style={{ marginTop: 2, color: "#555", textAlign: "center" }}>
-        {course.exp}
-      </Text>
+      <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
+      <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
+      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
+      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
 
       {/* Buttons */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginTop: 10,
-          
-        }}
-      >
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
         <TouchableOpacity
-          style={{
-            backgroundColor: "purple",
-            padding: 8,
-            borderRadius: 20,
-            flex: 1,
-            marginRight: 5,
-          }}
-          onPress={() => alert(`View details of ${course.name}`)}
+          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
+          onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
         >
-          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>
-            Detail
-          </Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{
-            backgroundColor: "purple",
-            padding: 8,
-            borderRadius: 20,
-            flex: 1,
-            marginLeft: 5,
-          }}
-          onPress={() => alert(`Enroll in ${course.name}`)}
+          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
+          onPress={() => navigation.navigate("Chat")}
         >
-          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>
-            View
-          </Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -144,10 +134,8 @@ export default function MathCoursesPage({ navigation }) {
           backgroundColor: "purple",
         }}
       >
-       
-
         <TextInput
-          placeholder="Search Math Courses"
+          placeholder="Search Math Teachers"
           placeholderTextColor="#ddd"
           value={search}
           onChangeText={setSearch}
@@ -162,28 +150,34 @@ export default function MathCoursesPage({ navigation }) {
           }}
         />
 
-        
+        <Ionicons name="calculator" size={28} color="white" />
       </View>
 
-      {/* ✅ Courses Grid */}
+      {/* ✅ Teachers Grid */}
       <ScrollView style={{ padding: 10 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-          }}
-        >
-          {filteredCourses.length > 0 ? (
-            filteredCourses.map((course, index) => (
-              <CourseCard key={index} course={course} />
-            ))
-          ) : (
-            <Text style={{ textAlign: "center", marginTop: 20, color: "gray" }}>
-              No math courses found
-            </Text>
-          )}
-        </View>
+        {loading ? (
+          <Text style={{ textAlign: "center", marginTop: 20, color: "gray" }}>
+            Loading teachers...
+          </Text>
+        ) : (
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
+            }}
+          >
+            {filteredTeachers.length > 0 ? (
+              filteredTeachers.map((teacher, index) => (
+                <TeacherCard key={teacher.id || index} teacher={teacher} />
+              ))
+            ) : (
+              <Text style={{ textAlign: "center", marginTop: 20, color: "gray", width: '100%' }}>
+                No math teachers found
+              </Text>
+            )}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

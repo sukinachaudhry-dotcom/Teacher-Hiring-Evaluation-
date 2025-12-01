@@ -274,27 +274,38 @@ export default function Institutehome({ navigation }) {
               <TouchableOpacity
                 key={category.cid}
                 onPress={() => {
-                  // Navigate based on category title
-                  // You can customize navigation based on your needs
+                  // Navigate based on category title (case-insensitive)
+                  const categoryTitle = (category.title || '').trim();
                   const pageMap = {
-                    'Computer': 'Computer',
-                    'Physics': 'Physics',
-                    'Math': 'Maths',
-                    'Courses': 'CoursesJobs',
-                    // Add more mappings as needed
+                    'computer': 'Computer',
+                    'physics': 'Physics',
+                    'math': 'Maths',
+                    'maths': 'Maths',
+                    'chemistry': 'Chemistry',
+                    'courses': 'CoursesJobs',
+                    // Only include routes that exist in navigation stack
                   };
-                  const page = pageMap[category.title] || category.title;
-                  navigation.navigate(page);
+                  
+                  // Get route name (case-insensitive lookup)
+                  const routeName = pageMap[categoryTitle.toLowerCase()];
+                  
+                  // Only navigate if route exists in pageMap
+                  if (routeName) {
+                    navigation.navigate(routeName);
+                  } else {
+                    // For categories without specific pages, navigate to Viewall
+                    navigation.navigate('Viewall', { category: categoryTitle });
+                  }
                 }}
               >
-                <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-                  <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
+            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
+              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
                     {/* Display icon from Firestore - using Ionicons */}
                     <Ionicons name={category.icon} size={30} color="#000" />
-                  </View>
+              </View>
                   <Text style={{ marginTop: 5 }}>{category.title}</Text>
-                </View>
-              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
             ))
           )}
         </ScrollView>
@@ -311,7 +322,7 @@ export default function Institutehome({ navigation }) {
           }}
         >    
         <Text style={{ fontSize: 16, fontWeight: "bold" }}>Popular Teachers</Text>
-         <TouchableOpacity onPress={() => navigation.navigate("Viewall", { mode: 'popular' })} >   
+         <TouchableOpacity onPress={() => navigation.navigate("Viewall")} >   
           <Text style={{ color: "purple", fontWeight: "bold" }}>
             View All
           </Text>
@@ -338,7 +349,7 @@ export default function Institutehome({ navigation }) {
         }}
       >
         <Text style={{ fontSize: 16, fontWeight: "bold" }}>Recent Teachers</Text>
-        <Text onPress={() => navigation.navigate("Viewall", { mode: 'recent' })} style={{ color: "purple", fontWeight: "bold" }}>
+        <Text onPress={() => navigation.navigate("Viewall")} style={{ color: "purple", fontWeight: "bold" }}>
           View All
         </Text>
       </View>

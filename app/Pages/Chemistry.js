@@ -1,3 +1,4 @@
+// ChemistryCoursesPage.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -8,17 +9,17 @@ import {
   ScrollView,
   SafeAreaView,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 
-export default function CoursesPage({ navigation }) {
+export default function ChemistryCoursesPage({ navigation }) {
   const [search, setSearch] = useState("");
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Get the subject value for filtering (Physics = 'physics')
-  const subjectValue = 'physics';
+  // Get the subject value for filtering (Chemistry = 'chemistry')
+  const subjectValue = 'chemistry';
 
   // Fetch teachers from Firestore filtered by subject
   useEffect(() => {
@@ -48,13 +49,13 @@ export default function CoursesPage({ navigation }) {
         setTeachers(teacherArray);
         setLoading(false);
       }, (error) => {
-        console.error('Error fetching physics teachers:', error);
+        console.error('Error fetching chemistry teachers:', error);
         setLoading(false);
       });
 
       return () => unsub();
     } catch (e) {
-      console.error('Error setting up physics teachers query:', e);
+      console.error('Error setting up chemistry teachers query:', e);
       setLoading(false);
     }
   }, []);
@@ -121,7 +122,7 @@ export default function CoursesPage({ navigation }) {
         }}
       >
         <TextInput
-          placeholder="Search Physics Teachers"
+          placeholder="Search Chemistry Teachers"
           placeholderTextColor="#ddd"
           value={search}
           onChangeText={setSearch}
@@ -136,7 +137,7 @@ export default function CoursesPage({ navigation }) {
           }}
         />
 
-        <MaterialCommunityIcons name="atom" size={28} color="white" />
+        <Ionicons name="flask-outline" size={28} color="white" />
       </View>
 
       {/* ✅ Teachers Grid */}
@@ -159,7 +160,7 @@ export default function CoursesPage({ navigation }) {
               ))
             ) : (
               <Text style={{ textAlign: "center", marginTop: 20, color: "gray", width: '100%' }}>
-                No physics teachers found
+                No chemistry teachers found
               </Text>
             )}
           </View>
@@ -168,3 +169,4 @@ export default function CoursesPage({ navigation }) {
     </SafeAreaView>
   );
 }
+

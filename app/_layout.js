@@ -56,6 +56,7 @@ import EditStudentProfile from './Pages/EditStudentProfile';
 import Computer from './Pages/Computer';
 import MathCoursesPage from "./Pages/Math";
 import PhysicsCoursesPage from "./Pages/Physics";
+import ChemistryCoursesPage from "./Pages/Chemistry";
 import Viewall from "./Pages/Viewall";
 import HirePage from "./Pages/Hirepage";
 import instJobdetails from './Pages/instJobdetails';
@@ -135,6 +136,7 @@ const StudentStack = () => (
     <Stack.Screen name="Computer" component={Computer} />
     <Stack.Screen name="Physics" component={PhysicsCoursesPage} />
     <Stack.Screen name="Maths" component={MathCoursesPage} />
+    <Stack.Screen name="Chemistry" component={ChemistryCoursesPage} />
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
     <Stack.Screen name="HirePage" component={HirePage}/>
@@ -169,6 +171,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="Computer" component={Computer} />
     <Stack.Screen name="Physics" component={PhysicsCoursesPage} />
     <Stack.Screen name="Maths" component={MathCoursesPage} />
+    <Stack.Screen name="Chemistry" component={ChemistryCoursesPage} />
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Viewall" component={Viewall} />
     <Stack.Screen name="InstJobdetails" component={instJobdetails} />
