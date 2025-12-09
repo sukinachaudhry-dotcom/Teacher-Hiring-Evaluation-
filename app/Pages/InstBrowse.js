@@ -1,124 +1,52 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Image } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { db } from "../../firebase";
+import { getDataById, getOrCreateConversation } from "../Helper/firebaseHelper";
 
 export default function InstBrowse({ navigation }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState("all"); // all | school | college | university
 
   useEffect(() => {
     setLoading(true);
-    let unsubs = [];
-    let instList = [];
-    let uniStudentList = [];
-
-    if (typeFilter === "university") {
-      const qInst = query(
-        collection(db, "institutionJobs"),
-        where("institutionType", "==", "university")
-      );
-      const u1 = onSnapshot(qInst, (snap) => {
-        instList = [];
-        snap.forEach((d) => {
-          const j = d.data();
-          instList.push({
-            id: `inst_${d.id}`,
-            title: j.title || "Teaching Job",
-            institutionName: j.institutionName || "",
-            city: j.city || "",
-            address: j.address || "",
-            classLevel: j.classLevel || j.grade || "",
+    
+    // Simple query - just fetch all jobs from post jobs collection
+    const unsubscribe = onSnapshot(
+      collection(db, "post jobs"),
+      (snap) => {
+        const jobsList = [];
+        snap.forEach((doc) => {
+          const j = doc.data();
+          jobsList.push({
+            id: doc.id,
+            title: j.jobTitle || "Teaching Job",
+            city: j.location || "",
             salary: j.salary || "",
+            subject: j.subject || "",
+            jobType: j.jobType || "",
+            requirements: j.requirements || "",
+            experience: j.experience || "",
+            classLevel: j.classLevel || "",
+            jobId: doc.id,
+            institutionId: j.institutionId || "",
+            status: j.status || "active",
           });
         });
-        setJobs([...
-          instList,
-          ...uniStudentList
-        ]);
+        setJobs(jobsList);
         setLoading(false);
-      }, () => {
-        instList = [];
-        setJobs([...
-          instList,
-          ...uniStudentList
-        ]);
-        setLoading(false);
-      });
-
-      const qStu = query(
-        collection(db, "users"),
-        where("role", "==", "Student"),
-        where("profileCompleted", "==", true),
-        where("modeofteaching", "in", ["inperson", "online", "hybrid"]),
-        where("selectclass", "in", ["Undergraduate", "Postgraduate"])
-      );
-      const u2 = onSnapshot(qStu, (snap) => {
-        uniStudentList = [];
-        snap.forEach((d) => {
-          const s = d.data();
-          uniStudentList.push({
-            id: `stu_${d.id}`,
-            title: s.subjects ? `${s.subjects} Tutor Needed` : "University Level Tuition",
-            institutionName: "",
-            city: "",
-            address: s.address || "",
-            classLevel: s.selectclass || "",
-            salary: s.expectedFee || "",
-          });
-        });
-        setJobs([...
-          instList,
-          ...uniStudentList
-        ]);
-        setLoading(false);
-      }, () => {
-        uniStudentList = [];
-        setJobs([...
-          instList,
-          ...uniStudentList
-        ]);
-        setLoading(false);
-      });
-
-      unsubs = [u1, u2];
-    } else {
-      const filters = [];
-      if (typeFilter !== "all") {
-        filters.push(where("institutionType", "==", typeFilter));
-      } else {
-        filters.push(where("institutionType", "in", ["school", "college", "university"]));
-      }
-      const q = query(collection(db, "institutionJobs"), ...filters);
-      const u = onSnapshot(q, (snap) => {
-        const list = [];
-        snap.forEach((d) => {
-          const j = d.data();
-          list.push({
-            id: d.id,
-            title: j.title || "Teaching Job",
-            institutionName: j.institutionName || "",
-            city: j.city || "",
-            address: j.address || "",
-            classLevel: j.classLevel || j.grade || "",
-            salary: j.salary || "",
-          });
-        });
-        setJobs(list);
-        setLoading(false);
-      }, () => {
+      },
+      (error) => {
+        console.error("Error fetching jobs:", error);
         setJobs([]);
         setLoading(false);
-      });
-      unsubs = [u];
-    }
+      }
+    );
 
-    return () => {
-      unsubs.forEach((fn) => fn && fn());
-    };
-  }, [typeFilter]);
+    return () => unsubscribe();
+  }, []);
 
   return (
     <ScrollView style={{ backgroundColor: '#fff' }}>
@@ -162,22 +90,6 @@ export default function InstBrowse({ navigation }) {
   </View>
 </ScrollView> */}
 
-     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
-       <View style={{ flexDirection: "row", paddingHorizontal: 10 }}>
-         <TouchableOpacity onPress={() => setTypeFilter("all")} style={{ backgroundColor: typeFilter === "all" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
-           <Text style={{ color: typeFilter === "all" ? "#fff" : "purple", fontWeight: "bold" }}>All</Text>
-         </TouchableOpacity>
-         <TouchableOpacity onPress={() => setTypeFilter("school")} style={{ backgroundColor: typeFilter === "school" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
-           <Text style={{ color: typeFilter === "school" ? "#fff" : "purple", fontWeight: "bold" }}>School</Text>
-         </TouchableOpacity>
-         <TouchableOpacity onPress={() => setTypeFilter("college")} style={{ backgroundColor: typeFilter === "college" ? "purple" : "#eee", padding: 10, borderRadius: 20 }}>
-           <Text style={{ color: typeFilter === "college" ? "#fff" : "purple", fontWeight: "bold" }}>College</Text>
-         </TouchableOpacity>
-         <TouchableOpacity onPress={() => setTypeFilter("university")} style={{ backgroundColor: typeFilter === "university" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginLeft: 8 }}>
-           <Text style={{ color: typeFilter === "university" ? "#fff" : "purple", fontWeight: "bold" }}>University</Text>
-         </TouchableOpacity>
-       </View>
-     </ScrollView>
 
       {/* Jobs List */}
       <View style={{ marginVertical: 10, paddingHorizontal: 10 }}>
@@ -199,21 +111,92 @@ export default function InstBrowse({ navigation }) {
               borderWidth: 2,
               borderColor: "purple"
             }}>
-              <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{job.title || "Teaching Job"}</Text>
-              <Text>{job.institutionName || job.city || job.address || "Institution"}</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                <Text>{job.classLevel ? `Class: ${job.classLevel}` : (job.grade ? `Class: ${job.grade}` : "")}</Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                <Text>{job.salary ? `${job.salary}` : ""}</Text>
-              </View>
+              <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 8, color: "#000" }}>
+                {job.title || "Teaching Job"}
+              </Text>
+              
+              {job.subject && (
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                  <Ionicons name="book-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 14, color: "#333" }}>Subject: {job.subject}</Text>
+                </View>
+              )}
+              
+              {job.city && (
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                  <Ionicons name="location-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 14, color: "#333" }}>{job.city}</Text>
+                </View>
+              )}
+              
+              {job.classLevel && (
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                  <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 14, color: "#333" }}>Class: {job.classLevel}</Text>
+                </View>
+              )}
+              
+              {job.jobType && (
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                  <Ionicons name="time-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 14, color: "#333" }}>Timing: {job.jobType}</Text>
+                </View>
+              )}
+              
+              {job.experience && (
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                  <Ionicons name="briefcase-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 14, color: "#333" }}>Experience: {job.experience}</Text>
+                </View>
+              )}
+              
+              {job.salary && (
+                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                  <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 14, color: "#333", fontWeight: "600" }}>Salary: {job.salary}</Text>
+                </View>
+              )}
+              
+              {job.requirements && (
+                <View style={{ marginTop: 8, padding: 8, backgroundColor: "rgba(255,255,255,0.5)", borderRadius: 5 }}>
+                  <Text style={{ fontSize: 12, color: "#555", fontWeight: "600", marginBottom: 4 }}>Requirements:</Text>
+                  <Text style={{ fontSize: 12, color: "#666" }} numberOfLines={2}>
+                    {job.requirements}
+                  </Text>
+                </View>
+              )}
+              
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
-                <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}>
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate("Jobdetails", { jobId: job.jobId || job.id })} 
+                  style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
+                >
                   <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Details</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("Chat")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}>
+                <TouchableOpacity 
+                  onPress={async () => {
+                    try {
+                      const auth = getAuth();
+                      const currentUser = auth.currentUser;
+                      
+                      if (currentUser && job.institutionId) {
+                        const conversationId = await getOrCreateConversation(currentUser.uid, job.institutionId);
+                        const otherUser = await getDataById('users', job.institutionId);
+                        navigation.navigate('ChatScreen', {
+                          conversationId,
+                          otherUser: {
+                            id: job.institutionId,
+                            name: otherUser?.institutionname || 'Institution',
+                            photoUrl: otherUser?.profileImage || null,
+                          }
+                        });
+                      }
+                    } catch (error) {
+                      console.error('Error starting chat:', error);
+                    }
+                  }}
+                  style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
+                >
                   <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
                 </TouchableOpacity>
               </View>

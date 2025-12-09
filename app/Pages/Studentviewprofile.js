@@ -11,12 +11,19 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSelector } from 'react-redux';
 import { getAuth } from "firebase/auth";
-import { getDataById } from "../Helper/firebaseHelper";
+import { getDataById, addData } from "../Helper/firebaseHelper";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebase";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function StudentProfileView({ navigation, route }) {
+  const reduxUser = useSelector(state => state.home.user);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [hasRequested, setHasRequested] = useState(false);
   
   // Get teacherId from route params if viewing a teacher profile
   const teacherId = route?.params?.teacherId;
@@ -35,21 +42,26 @@ export default function StudentProfileView({ navigation, route }) {
           Alert.alert("Error", "Teacher profile not found");
         }
       } else {
-        // Fetch student's own profile
-        const auth = getAuth();
-        const user = auth.currentUser;
-
-        if (!user) {
-          Alert.alert("Error", "User not logged in");
-          setLoading(false);
-          return;
-        }
-
-        const data = await getDataById("users", user.uid);
-        if (data) {
-          setProfileData(data);
+        // Use Redux user data for student's own profile
+        if (reduxUser && Object.keys(reduxUser).length > 0) {
+          setProfileData(reduxUser);
         } else {
-          Alert.alert("Error", "Profile not found");
+          // Fallback to Firebase if Redux doesn't have data
+          const auth = getAuth();
+          const user = auth.currentUser;
+
+          if (!user) {
+            Alert.alert("Error", "User not logged in");
+            setLoading(false);
+            return;
+          }
+
+          const data = await getDataById("users", user.uid);
+          if (data) {
+            setProfileData(data);
+          } else {
+            Alert.alert("Error", "Profile not found");
+          }
         }
       }
     } catch (error) {
@@ -60,11 +72,118 @@ export default function StudentProfileView({ navigation, route }) {
     }
   }, [teacherId]);
 
+  // Check if student has already sent a hiring request
+  const checkExistingRequest = useCallback(async () => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user || !teacherId) return;
+
+      const requestsQuery = query(
+        collection(db, "hiring requests"),
+        where("studentId", "==", user.uid),
+        where("teacherId", "==", teacherId)
+      );
+
+      const querySnapshot = await getDocs(requestsQuery);
+      if (!querySnapshot.empty) {
+        setHasRequested(true);
+      } else {
+        setHasRequested(false);
+      }
+    } catch (error) {
+      console.error("Error checking existing request:", error);
+    }
+  }, [teacherId]);
+
+  // Handle sending hiring request
+  const handleSendHiringRequest = async () => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        Alert.alert("Error", "Please log in to send a hiring request");
+        return;
+      }
+
+      if (!teacherId || !profileData) {
+        Alert.alert("Error", "Teacher information not available");
+        return;
+      }
+
+      // Check if request already exists
+      if (hasRequested) {
+        Alert.alert("Already Sent", "You have already sent a hiring request to this teacher");
+        return;
+      }
+
+      setSendingRequest(true);
+
+      // Create hiring request data
+      const requestData = {
+        studentId: user.uid,
+        studentName: user.displayName || profileData.fullname || "Student",
+        teacherId: teacherId,
+        teacherName: profileData.name || "Teacher",
+        teacherSubject: profileData.teachingsubjects || "",
+        teacherLocation: profileData.location || "",
+        status: "pending", // pending, accepted, rejected
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Save to Firestore
+      const requestId = await addData("hiring requests", requestData);
+
+      // Create notification for teacher
+      if (requestId) {
+        const notificationData = {
+          userId: teacherId, // Teacher's user ID
+          type: "hiring_request",
+          title: "New Hiring Request",
+          message: `${requestData.studentName} sent you a hiring request`,
+          requestId: requestId,
+          studentId: user.uid,
+          studentName: requestData.studentName,
+          teacherId: teacherId,
+          teacherName: profileData.name || "Teacher",
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        await addData("notifications", notificationData);
+      }
+
+      setHasRequested(true);
+      Alert.alert(
+        "Success",
+        "Hiring request sent successfully! The teacher will be notified.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error("Error sending hiring request:", error);
+      Alert.alert("Error", "Failed to send hiring request. Please try again.");
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       fetchProfile();
-    }, [fetchProfile])
+      // Check if student has already sent a hiring request to this teacher
+      if (teacherId) {
+        checkExistingRequest();
+      }
+    }, [fetchProfile, teacherId, checkExistingRequest])
   );
+
+  // Update profile data when Redux user changes (for own profile)
+  React.useEffect(() => {
+    if (!teacherId && reduxUser && Object.keys(reduxUser).length > 0) {
+      setProfileData(reduxUser);
+    }
+  }, [reduxUser, teacherId]);
 
   // Helper function to get label from value
   const getClassLabel = (value) => {
@@ -195,17 +314,24 @@ export default function StudentProfileView({ navigation, route }) {
     );
   }
 
+  // Get profile picture from all possible field names
+  const profilePicture = profileData?.profilePicUrl || profileData?.profileImage || profileData?.photoUrl || profileData?.photo || null;
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Profile Image */}
-      <Image 
-        source={
-          profileData.photoUrl || profileData.profileImage 
-            ? { uri: profileData.photoUrl || profileData.profileImage } 
-            : require("./splash.jpeg")
-        }
-        style={styles.avatar} 
-      />
+      <View style={styles.avatarContainer}>
+        {profilePicture ? (
+          <Image 
+            source={{ uri: profilePicture }}
+            style={styles.avatar} 
+          />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Ionicons name="person" size={50} color="#999" />
+          </View>
+        )}
+      </View>
 
       {/* Profile Info */}
       <View style={{ alignItems: "center", marginTop: 70 }}>
@@ -342,37 +468,84 @@ export default function StudentProfileView({ navigation, route }) {
           </>
         ) : (
           <>
-            {/* Student-specific fields */}
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Phone Number:</Text>
-              <Text style={styles.detailValue}>{profileData.phonenumber || "N/A"}</Text>
-            </View>
+            {/* Student-specific fields - Show all available fields from Redux */}
+            {profileData.fullname && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Full Name:</Text>
+                <Text style={styles.detailValue}>{profileData.fullname}</Text>
+              </View>
+            )}
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Address:</Text>
-              <Text style={styles.detailValue}>{profileData.address || "N/A"}</Text>
-            </View>
+            {profileData.phonenumber && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Phone Number:</Text>
+                <Text style={styles.detailValue}>{profileData.phonenumber}</Text>
+              </View>
+            )}
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Class:</Text>
-              <Text style={styles.detailValue}>
-                {getClassLabel(profileData.selectclass) || "N/A"}
-              </Text>
-            </View>
+            {profileData.address && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Address:</Text>
+                <Text style={styles.detailValue}>{profileData.address}</Text>
+              </View>
+            )}
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Subject:</Text>
-              <Text style={styles.detailValue}>
-                {getSubjectLabel(profileData.subjects) || "N/A"}
-              </Text>
-            </View>
+            {profileData.selectclass && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Class:</Text>
+                <Text style={styles.detailValue}>
+                  {getClassLabel(profileData.selectclass)}
+                </Text>
+              </View>
+            )}
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Mode of Teaching:</Text>
-              <Text style={styles.detailValue}>
-                {getModeLabel(profileData.modeofteaching) || "N/A"}
-              </Text>
-            </View>
+            {profileData.subjects && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Subject:</Text>
+                <Text style={styles.detailValue}>
+                  {getSubjectLabel(profileData.subjects)}
+                </Text>
+              </View>
+            )}
+
+            {profileData.modeofteaching && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Mode of Teaching:</Text>
+                <Text style={styles.detailValue}>
+                  {getModeLabel(profileData.modeofteaching)}
+                </Text>
+              </View>
+            )}
+
+            {/* Show any additional fields from Redux */}
+            {Object.keys(profileData).map((key) => {
+              // Skip already displayed fields and system fields (case-insensitive check)
+              const displayedFields = ['email', 'fullname', 'phonenumber', 'address', 'selectclass', 'subjects', 'modeofteaching', 'role', 'uid', 'createdat', 'updatedat', 'profilepicurl', 'profileimage', 'photourl', 'photo', 'id', '_id'];
+              const keyLower = key.toLowerCase();
+              if (displayedFields.includes(keyLower)) {
+                return null;
+              }
+              
+              // Also check for variations like createdAt, created_at, etc.
+              if (keyLower.includes('created') || keyLower.includes('updated') || keyLower.startsWith('_')) {
+                return null;
+              }
+              
+              // Skip empty values
+              const value = profileData[key];
+              if (!value || value === '' || (typeof value === 'object' && Object.keys(value).length === 0)) {
+                return null;
+              }
+
+              return (
+                <View key={key} style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim()}:</Text>
+                  <Text style={styles.detailValue}>
+                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                  </Text>
+                </View>
+              );
+            })}
           </>
         )}
       </View>
@@ -385,6 +558,28 @@ export default function StudentProfileView({ navigation, route }) {
             style={styles.editBtn}
           >
             <Text style={styles.editBtnText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Send Hiring Request Button - Only show for teacher profile */}
+      {isTeacherProfile && (
+        <View style={styles.editButtonContainer}>
+          <TouchableOpacity
+            onPress={handleSendHiringRequest}
+            disabled={sendingRequest || hasRequested}
+            style={[
+              styles.editBtn,
+              (sendingRequest || hasRequested) && { backgroundColor: "#999", opacity: 0.7 }
+            ]}
+          >
+            <Text style={styles.editBtnText}>
+              {sendingRequest
+                ? "Sending..."
+                : hasRequested
+                ? "Request Already Sent"
+                : "Send Hiring Request"}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -404,15 +599,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: -40,
   },
+  avatarContainer: {
+    alignSelf: "center",
+    marginBottom: -60,
+  },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
     borderColor: "#fff",
-    marginBottom: -60,
-    alignSelf: "center",
     backgroundColor: "#eee",
+  },
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: "#fff",
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   name: { fontSize: 22, fontWeight: "bold", color: "#000" },
   role: { fontSize: 16, color: "purple", marginTop: 4 },

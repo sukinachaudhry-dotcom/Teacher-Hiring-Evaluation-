@@ -3,7 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, SafeAreaVie
 import { Ionicons , MaterialCommunityIcons } from "@expo/vector-icons";
 import Carousel from "react-native-reanimated-carousel";
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '../../firebase';
+import { getOrCreateConversation, getDataById } from '../Helper/firebaseHelper';
 
 
 const { width } = Dimensions.get("window");
@@ -17,6 +19,7 @@ export default function App({ navigation }) {
     const [teachers, setTeachers] = React.useState([]);
     const [recentTeachers, setRecentTeachers] = React.useState([]);
     const [categories, setCategories] = React.useState([]);
+    const [searchQuery, setSearchQuery] = React.useState('');
 
     React.useEffect(() => {
         try {
@@ -185,6 +188,30 @@ export default function App({ navigation }) {
         }
     }, []);
 
+    // Filter teachers based on search query (by name or subject)
+    const filterTeachers = (teacherList) => {
+        if (!searchQuery.trim()) {
+            return teacherList;
+        }
+        
+        const query = searchQuery.toLowerCase().trim();
+        return teacherList.filter(teacher => {
+            const name = (teacher.name || '').toLowerCase();
+            const subjects = (teacher.teachingsubjects || '').toLowerCase();
+            
+            // Check if search query matches name or any subject
+            return name.includes(query) || subjects.includes(query);
+        });
+    };
+
+    const filteredTeachers = filterTeachers(teachers);
+    const filteredRecentTeachers = filterTeachers(recentTeachers);
+    
+    // Combine all teachers when searching
+    const allFilteredTeachers = searchQuery.trim() 
+        ? [...filteredTeachers, ...filteredRecentTeachers]
+        : [];
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
             <ScrollView style={{ flex: 1 }}>
@@ -203,8 +230,10 @@ export default function App({ navigation }) {
                 
 
                     <TextInput
-                        placeholder="Search Teachers"
+                        placeholder="Search Teachers by Name or Subject"
                         placeholderTextColor="#999"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
                         style={{
                             flex: 1,
                             backgroundColor: '#fff',
@@ -244,10 +273,99 @@ export default function App({ navigation }) {
           />
         </View>
 
+                {/* Search Results Section - Show when searching */}
+                {searchQuery.trim() && (
+                    <View style={{ marginHorizontal: 10, marginTop: 10 }}>
+                        <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
+                            Search Results ({allFilteredTeachers.length})
+                        </Text>
+                        {allFilteredTeachers.length === 0 ? (
+                            <Text style={{ textAlign: 'center', marginTop: 10, color: '#555' }}>
+                                No teachers found matching "{searchQuery}"
+                            </Text>
+                        ) : (
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+                                {allFilteredTeachers.map((teacher, index) => (
+                                    <View
+                                        key={`search_${teacher.id || index}`}
+                                        style={{
+                                            width: "48%",
+                                            backgroundColor: '#fff',
+                                            borderRadius: 10,
+                                            padding: 10,
+                                            marginBottom: 15,
+                                            shadowColor: "#000",
+                                            shadowOpacity: 0.1,
+                                            shadowRadius: 4,
+                                            elevation: 3,
+                                        }}
+                                    >
+                                        <Image
+                                            source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+                                            style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+                                        />
+                                        <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
+                                        <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
+                                        <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
+                                        <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
+
+                                        {/* Buttons */}
+                                        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+                                            <TouchableOpacity
+                                                style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
+                                                onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
+                                            >
+                                                <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
+                                                onPress={async () => {
+                                                    try {
+                                                        const auth = getAuth();
+                                                        const currentUser = auth.currentUser;
+                                                        
+                                                        if (!currentUser) {
+                                                            console.log('No user logged in');
+                                                            return;
+                                                        }
+                                                        
+                                                        if (!teacher.id) {
+                                                            console.log('No teacher ID');
+                                                            return;
+                                                        }
+                                                        
+                                                        const conversationId = await getOrCreateConversation(currentUser.uid, teacher.id);
+                                                        const otherUser = await getDataById('users', teacher.id);
+                                                        
+                                                        navigation.navigate('ChatScreen', {
+                                                            conversationId,
+                                                            otherUser: {
+                                                                id: teacher.id,
+                                                                name: otherUser?.name || otherUser?.fullname || 'User',
+                                                                photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || otherUser?.photoUrl || null,
+                                                            }
+                                                        });
+                                                    } catch (error) {
+                                                        console.error('Error starting chat:', error);
+                                                    }
+                                                }}
+                                            >
+                                                <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                )}
+
                 {/* Learning System Section */}
-                <Text style={{ marginLeft: 10, fontSize: 16, fontWeight: 'bold' }}>
-                    Learning System
-                </Text>
+                {!searchQuery.trim() && (
+                    <>
+                    <Text style={{ marginLeft: 10, fontSize: 16, fontWeight: 'bold' }}>
+                        Learning System
+                    </Text>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
                     {categories.length === 0 ? (
@@ -296,21 +414,25 @@ export default function App({ navigation }) {
                         ))
                     )}
                 </ScrollView>
+                    </>
+                )}
 
-                {/* Popular Teachers Section */}
+                {/* Popular Teachers Section - Hide when searching */}
+                {!searchQuery.trim() && (
+                    <>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 20 }}>
                     <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Popular Teachers</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate("Viewall", { mode: 'popular' })}>
+                    <TouchableOpacity onPress={() => navigation.navigate("Viewall")}>
                         <Text style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Popular Teacher Cards Grid (2 per row) */}
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
-                    {teachers.length === 0 ? (
+                    {filteredTeachers.length === 0 ? (
                         <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No popular teachers yet.</Text>
                     ) : (
-                    teachers.slice(0, 6).map((teacher, index) => (
+                    filteredTeachers.slice(0, 6).map((teacher, index) => (
                         <View
                             key={teacher.id || index}
                             style={{
@@ -344,7 +466,27 @@ export default function App({ navigation }) {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
-                                    onPress={() => navigation.navigate("Chat")}
+                                    onPress={async () => {
+                                        try {
+                                            const auth = getAuth();
+                                            const currentUser = auth.currentUser;
+                                            
+                                            if (currentUser && teacher.id) {
+                                                const conversationId = await getOrCreateConversation(currentUser.uid, teacher.id);
+                                                const otherUser = await getDataById('users', teacher.id);
+                                                navigation.navigate('ChatScreen', {
+                                                    conversationId,
+                                                    otherUser: {
+                                                        id: teacher.id,
+                                                        name: otherUser?.name || otherUser?.fullname || 'User',
+                                                        photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || otherUser?.photoUrl || null,
+                                                    }
+                                                });
+                                            }
+                                        } catch (error) {
+                                            console.error('Error starting chat:', error);
+                                        }
+                                    }}
                                 >
                                     <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
                                 </TouchableOpacity>
@@ -353,21 +495,25 @@ export default function App({ navigation }) {
                     ))
                     )}
                 </View>
+                    </>
+                )}
 
-                {/* Recent Teachers Section */}
+                {/* Recent Teachers Section - Hide when searching */}
+                {!searchQuery.trim() && (
+                    <>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 10, marginTop: 10 }}>
                     <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Recent Teachers</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate("Viewall", { mode: 'recent' })}>
+                    <TouchableOpacity onPress={() => navigation.navigate("Viewall")}>
                         <Text style={{ color: 'purple', fontWeight: 'bold' }}>View All</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Recent Teacher Cards Grid (2 per row) */}
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
-                    {recentTeachers.length === 0 ? (
+                    {filteredRecentTeachers.length === 0 ? (
                         <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No recent teachers yet.</Text>
                     ) : (
-                    recentTeachers.slice(0, 6).map((teacher, index) => (
+                    filteredRecentTeachers.slice(0, 6).map((teacher, index) => (
                         <View
                             key={`recent_${teacher.id || index}`}
                             style={{
@@ -401,7 +547,27 @@ export default function App({ navigation }) {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
-                                    onPress={() => navigation.navigate("Chat")}
+                                    onPress={async () => {
+                                        try {
+                                            const auth = getAuth();
+                                            const currentUser = auth.currentUser;
+                                            
+                                            if (currentUser && teacher.id) {
+                                                const conversationId = await getOrCreateConversation(currentUser.uid, teacher.id);
+                                                const otherUser = await getDataById('users', teacher.id);
+                                                navigation.navigate('ChatScreen', {
+                                                    conversationId,
+                                                    otherUser: {
+                                                        id: teacher.id,
+                                                        name: otherUser?.name || otherUser?.fullname || 'User',
+                                                        photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || otherUser?.photoUrl || null,
+                                                    }
+                                                });
+                                            }
+                                        } catch (error) {
+                                            console.error('Error starting chat:', error);
+                                        }
+                                    }}
                                 >
                                     <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
                                 </TouchableOpacity>
@@ -410,6 +576,8 @@ export default function App({ navigation }) {
                     ))
                     )}
                 </View>
+                    </>
+                )}
 
             </ScrollView>
         </SafeAreaView>

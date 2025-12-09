@@ -9,17 +9,16 @@ import {
   SafeAreaView,
 } from "react-native";
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '../../firebase';
+import { getOrCreateConversation, getDataById } from '../Helper/firebaseHelper';
 
 export default function Viewall({ navigation, route }) {
   const [search, setSearch] = useState("");
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Get mode from route params (popular or recent)
-  const mode = route?.params?.mode || 'popular';
-  
-  // Fetch teachers from Firestore
+  // Fetch all teachers from Firestore
   useEffect(() => {
     try {
       setLoading(true);
@@ -50,57 +49,19 @@ export default function Viewall({ navigation, route }) {
           });
         });
         
-        // Filter and sort based on mode
-        let filteredArray = teacherArray;
+        // Sort by experience (highest first), then by account age (oldest first)
+        teacherArray.sort((a, b) => {
+          // First sort by experience
+          const expDiff = (b.experienceYears || 0) - (a.experienceYears || 0);
+          if (expDiff !== 0) return expDiff;
+          
+          // If experience is same, sort by account age (oldest first)
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return aTime - bTime; // Ascending (oldest first)
+        });
         
-        if (mode === 'popular') {
-          // Filter: Show only teachers with more experience (2+ years) AND old accounts (15+ days old)
-          const now = new Date();
-          const fifteenDaysAgo = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000)); // 15 days ago
-          
-          filteredArray = teacherArray.filter((teacher) => {
-            // Check experience: 2 years or more (includes exactly 2 years)
-            const hasEnoughExperience = (teacher.experienceYears || 0) >= 2;
-            
-            // Check account age: created at least 15 days ago
-            const accountCreatedAt = teacher.createdAt ? new Date(teacher.createdAt) : null;
-            const isOldAccount = accountCreatedAt && accountCreatedAt.getTime() < fifteenDaysAgo.getTime();
-            
-            // Show only if both conditions are met
-            return hasEnoughExperience && isOldAccount;
-          });
-          
-          // Sort by experience (highest first), then by account age (oldest first)
-          filteredArray.sort((a, b) => {
-            // First sort by experience
-            const expDiff = (b.experienceYears || 0) - (a.experienceYears || 0);
-            if (expDiff !== 0) return expDiff;
-            
-            // If experience is same, sort by account age (oldest first)
-            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return aTime - bTime; // Ascending (oldest first)
-          });
-        } else if (mode === 'recent') {
-          // Filter: Show only teachers who recently created accounts (within last 30 days)
-          const now = new Date();
-          const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago
-          
-          filteredArray = teacherArray.filter((teacher) => {
-            // Check if account was created recently (within last 30 days)
-            const accountCreatedAt = teacher.createdAt ? new Date(teacher.createdAt) : null;
-            return accountCreatedAt && accountCreatedAt.getTime() >= thirtyDaysAgo.getTime();
-          });
-          
-          // Sort by createdAt (most recent first)
-          filteredArray.sort((a, b) => {
-            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return bTime - aTime; // Descending order (most recent first)
-          });
-        }
-        
-        setTeachers(filteredArray);
+        setTeachers(teacherArray);
         setLoading(false);
       }, (error) => {
         console.error('Error fetching teachers:', error);
@@ -112,7 +73,7 @@ export default function Viewall({ navigation, route }) {
       console.error('Error setting up teachers query:', e);
       setLoading(false);
     }
-  }, [mode]);
+  }, []);
 
   // Search filter
   const filteredTeachers = teachers.filter((teacher) =>
@@ -154,7 +115,27 @@ export default function Viewall({ navigation, route }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
-          onPress={() => navigation.navigate("Chat")}
+          onPress={async () => {
+            try {
+              const auth = getAuth();
+              const currentUser = auth.currentUser;
+              
+              if (currentUser && teacher.id) {
+                const conversationId = await getOrCreateConversation(currentUser.uid, teacher.id);
+                const otherUser = await getDataById('users', teacher.id);
+                navigation.navigate('ChatScreen', {
+                  conversationId,
+                  otherUser: {
+                    id: teacher.id,
+                    name: otherUser?.name || otherUser?.fullname || 'User',
+                    photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || null,
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('Error starting chat:', error);
+            }
+          }}
         >
           <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
         </TouchableOpacity>
@@ -188,44 +169,6 @@ export default function Viewall({ navigation, route }) {
           />
         </View>
 
-        {/* 📌 Mode Toggle Buttons */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginVertical: 10 }}
-        >
-          <View style={{ flexDirection: "row" }}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Viewall", { mode: 'popular' })}
-              style={{
-                backgroundColor: mode === 'popular' ? "purple" : "#d8b4e2",
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 50,
-                marginLeft: 8,
-              }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "bold", color: mode === 'popular' ? "white" : "#333" }}>
-                Popular Teachers
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Viewall", { mode: 'recent' })}
-              style={{
-                backgroundColor: mode === 'recent' ? "purple" : "#d8b4e2",
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 50,
-                marginLeft: 8,
-              }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "bold", color: mode === 'recent' ? "white" : "#333" }}>
-                Recent Teachers
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-
         {/* 👨‍🏫 Teacher Cards */}
         <View style={{ paddingHorizontal: 10 }}>
           <Text
@@ -236,7 +179,7 @@ export default function Viewall({ navigation, route }) {
               marginVertical: 10,
             }}
           >
-            {mode === 'popular' ? 'All Popular Teachers' : 'All Recent Teachers'}
+            All Teachers ({filteredTeachers.length})
           </Text>
           
           {loading ? (

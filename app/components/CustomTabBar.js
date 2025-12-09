@@ -47,7 +47,9 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   };
 
   const renderTabIcon = (route, index, isFocused) => {
-    const { options } = descriptors[route.key];
+    const descriptor = descriptors[route.key];
+    // Safely extract options without accessing ref
+    const options = descriptor?.options || {};
     const label = options.tabBarLabel || options.title || route.name;
 
     let iconName;

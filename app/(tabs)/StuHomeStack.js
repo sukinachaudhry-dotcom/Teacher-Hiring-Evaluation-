@@ -3,10 +3,10 @@ import { SafeAreaView } from 'react-native';
 
 // import JobDetail from '../Pages/Jobdetails';
 
-import ChatScreen from '../Pages/Chat';
 import Studenthome from '../Pages/Studenthome';
 import Studentviewprofile from '../Pages/Studentviewprofile';
-import Applicants from '../Pages/Applicants'
+import Applicants from '../Pages/Applicants';
+import ChatScreen from '../Pages/ChatScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -20,7 +20,7 @@ const StuHomeStack = () => {
         <Stack.Screen name="Studenthome" component={Studenthome} />
         <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
         <Stack.Screen name="Applicants" component={Applicants} />
-        {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
+        <Stack.Screen name="ChatScreen" component={ChatScreen} />
 
       </Stack.Navigator>
     </SafeAreaView>

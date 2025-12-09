@@ -1,6 +1,6 @@
 // firestoreService.js
 import {getAuth, createUserWithEmailAndPassword,sendPasswordResetEmail,signInWithEmailAndPassword,signOut} from "firebase/auth";
-import {addDoc, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc} from 'firebase/firestore';
+import {addDoc, collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc, query, where, serverTimestamp} from 'firebase/firestore';
 import { auth, db } from '../../firebase'; // make sure you export both db and auth in firebase.js
 
 //--------------------------------
@@ -144,10 +144,18 @@ export const forgotPassword = async (email) => {
 // ✅ Logout
 export const logout = async () => {
     try {
-        await signOut(auth);
-        console.log("User logged out successfully");
+        // Check if user is authenticated before attempting signout
+        const currentUser = auth.currentUser;
+        
+        if (currentUser) {
+            await signOut(auth);
+            console.log("User logged out successfully from Firebase Auth");
+        } else {
+            console.log("No user to logout - already signed out");
+        }
     } catch (error) {
         console.error("Error logging out:", error.message);
+        // Re-throw error so calling code can handle it
         throw error;
     }
 };
@@ -206,6 +214,50 @@ export async function addUserDetails(extraData = {}) {
   } catch (err) {
     console.error("addUserDetails error:", err);
     throw err;
+  }
+}
+
+//--------------------------------
+// 🔹 Chat Services
+//--------------------------------
+
+// ✅ Get or create conversation between two users
+export async function getOrCreateConversation(userId1, userId2) {
+  try {
+    // Create sorted participant array for consistent conversation ID
+    const participants = [userId1, userId2].sort();
+    
+    // Check if conversation already exists
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', '==', participants)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      // Conversation exists, return its ID
+      return querySnapshot.docs[0].id;
+    }
+    
+    // Create new conversation
+    const newConversation = {
+      participants: participants,
+      lastMessage: '',
+      lastMessageTime: serverTimestamp(),
+      unreadCount: {
+        [userId1]: 0,
+        [userId2]: 0,
+      },
+      createdAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(conversationsRef, newConversation);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error getting/creating conversation:', error);
+    throw error;
   }
 }
 

@@ -1,15 +1,26 @@
 import { Ionicons } from '@expo/vector-icons'; // Using Ionicons
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import StuHomeStack from './StuHomeStack';
 import InstJobs from '../Pages/InstJobs';
-import ChatScreen from '../Pages/Chat';
+import ChatList from '../Pages/ChatList';
+import ChatScreen from '../Pages/ChatScreen';
 import Studentviewprofile from '../Pages/Studentviewprofile';
 // import Favourite from '../Pages/Favourite';
 import HirePage from '../Pages/Hirepage';
 
-
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function ChatStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ChatList" component={ChatList} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function StuBottomTab() {
     return (
@@ -18,7 +29,7 @@ export default function StuBottomTab() {
             headerShown: false
         }} initialRouteName='Home'>
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} /> }} name="Home" component={StuHomeStack} />
-            {/* <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="chat" component={ChatScreen} /> */}
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="Chat" component={ChatStack} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={Studentviewprofile} />
             <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="school-outline" size={24} color={color} /> }} name="My Teachers" component={HirePage} />
 

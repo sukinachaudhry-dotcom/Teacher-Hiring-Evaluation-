@@ -67,6 +67,7 @@ import EditInstitutionProfile from './Pages/EditInstitutionProfile';
 import TestList from './Pages/TestList';
 import TakeTest from './Pages/TakeTest';
 import TestResult from './Pages/TestResult';
+import ChatScreen from './Pages/ChatScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -112,6 +113,7 @@ const TeacherStack = () => (
     <Stack.Screen name="TestList" component={TestList} options={{ title: 'Available Tests' }} />
     <Stack.Screen name="TakeTest" component={TakeTest} options={{ title: 'Take Test' }} />
     <Stack.Screen name="TestResult" component={TestResult} options={{ headerShown: false }} />
+    <Stack.Screen name="ChatScreen" component={ChatScreen} />
   </Stack.Navigator>
 );
 
@@ -142,9 +144,7 @@ const StudentStack = () => (
     <Stack.Screen name="HirePage" component={HirePage}/>
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
-
-
-    {/* <Stack.Screen name="Chat" component={ChatScreen} /> */}
+    <Stack.Screen name="ChatScreen" component={ChatScreen} />
   </Stack.Navigator>
 );
 
@@ -179,6 +179,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="EditInstitutionProfile" component={EditInstitutionProfile} />
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
+    <Stack.Screen name="ChatScreen" component={ChatScreen} />
   </Stack.Navigator>
 );
 

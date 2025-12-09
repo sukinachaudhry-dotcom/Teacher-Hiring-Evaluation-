@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, Pressable, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, doc, getDocs, getDoc, updateDoc, arrayUnion, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
@@ -131,7 +131,7 @@ export default function TakeTest({ route, navigation }) {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -204,7 +204,7 @@ export default function TakeTest({ route, navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }
 

@@ -302,32 +302,77 @@
 //4th
 
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
-import { getFirestore, collection, query, where, onSnapshot } from "firebase/firestore";
+import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from "react-native";
+import { collection, query, where, onSnapshot, doc, getDoc, deleteDoc, getDocs } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { db } from "../../firebase";
+import { addData } from "../Helper/firebaseHelper";
 
 const HirePage = () => {
-  const [teachers, setTeachers] = useState([]);
+  const [hiringRequests, setHiringRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const db = getFirestore();
+  const [cancellingId, setCancellingId] = useState(null);
   const auth = getAuth();
   const navigation = useNavigation();
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-    const q = query(collection(db, "HiredTeachers"), where("studentId", "==", user.uid));
+    // Fetch hiring requests for this student
+    const q = query(
+      collection(db, "hiring requests"),
+      where("studentId", "==", user.uid)
+    );
 
-    // ✅ Real-time listener (no need for getDocs)
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const teacherList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setTeachers(teacherList);
+    // Real-time listener
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const requests = [];
+      
+      // Fetch teacher details for each request
+      for (const docSnap of snapshot.docs) {
+        const requestData = docSnap.data();
+        
+        // Fetch teacher details from users collection
+        let teacherData = null;
+        if (requestData.teacherId) {
+          try {
+            const teacherDoc = await getDoc(doc(db, "users", requestData.teacherId));
+            if (teacherDoc.exists()) {
+              teacherData = teacherDoc.data();
+            }
+          } catch (error) {
+            console.error("Error fetching teacher data:", error);
+          }
+        }
+
+        requests.push({
+          id: docSnap.id,
+          ...requestData,
+          teacherData: teacherData,
+          teacherName: requestData.teacherName || teacherData?.name || "Teacher",
+          teacherSubject: requestData.teacherSubject || teacherData?.teachingsubjects || "",
+          teacherLocation: requestData.teacherLocation || teacherData?.location || "",
+          teacherPhoto: teacherData?.photoUrl || teacherData?.profileImage || null,
+        });
+      }
+
+      // Sort by createdAt (most recent first)
+      requests.sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+
+      setHiringRequests(requests);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching hiring requests:", error);
       setLoading(false);
     });
 
@@ -335,20 +380,178 @@ const HirePage = () => {
     return () => unsubscribe();
   }, []);
 
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "accepted":
+        return "#4CAF50"; // Green
+      case "rejected":
+        return "#F44336"; // Red
+      case "pending":
+        return "purple"; // Purple
+      default:
+        return "#757575"; // Gray
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status?.toLowerCase()) {
+      case "accepted":
+        return "Accepted ✓";
+      case "rejected":
+        return "Rejected ✗";
+      case "pending":
+        return "Pending ⏳";
+      default:
+        return status || "Unknown";
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
+  const handleCancelRequest = async (requestId, teacherName, requestData) => {
+    if (!requestId) {
+      Alert.alert("Error", "Request ID is missing");
+      return;
+    }
+
+    Alert.alert(
+      "Cancel Request",
+      `Are you sure you want to cancel the hiring request for ${teacherName}?`,
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Cancel",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setCancellingId(requestId);
+              console.log("Cancelling request:", requestId);
+              
+              const user = auth.currentUser;
+              if (!user) {
+                Alert.alert("Error", "User not logged in");
+                setCancellingId(null);
+                return;
+              }
+
+              // Get request data before deleting
+              const requestDocRef = doc(db, "hiring requests", requestId);
+              const requestDoc = await getDoc(requestDocRef);
+              
+              if (!requestDoc.exists()) {
+                Alert.alert("Error", "Request not found");
+                setCancellingId(null);
+                return;
+              }
+
+              const requestInfo = requestDoc.data();
+              const teacherId = requestInfo.teacherId;
+              const studentName = requestInfo.studentName || "Student";
+
+              console.log("Request info:", { teacherId, studentName, requestId });
+
+              // Delete the hiring request first
+              await deleteDoc(requestDocRef);
+              console.log("Request deleted successfully");
+
+              // Create notification for teacher about cancellation
+              if (teacherId) {
+                try {
+                  const notificationData = {
+                    userId: teacherId, // Teacher's user ID
+                    type: "request_cancelled",
+                    title: "Request Cancelled",
+                    message: `${studentName} has cancelled the hiring request`,
+                    requestId: requestId,
+                    studentId: user.uid,
+                    studentName: studentName,
+                    teacherId: teacherId,
+                    teacherName: requestInfo.teacherName || "Teacher",
+                    read: false,
+                    createdAt: new Date().toISOString(),
+                  };
+                  await addData("notifications", notificationData);
+                  console.log("Notification created for teacher");
+                } catch (notifError) {
+                  console.error("Error creating notification:", notifError);
+                  // Continue even if notification fails
+                }
+              }
+
+              // Clean up related notifications for teacher (optional)
+              if (teacherId) {
+                try {
+                  const notificationsQuery = query(
+                    collection(db, "notifications"),
+                    where("userId", "==", teacherId),
+                    where("requestId", "==", requestId),
+                    where("type", "==", "hiring_request")
+                  );
+                  const notificationsSnapshot = await getDocs(notificationsQuery);
+                  if (!notificationsSnapshot.empty) {
+                    const deletePromises = notificationsSnapshot.docs.map((notifDoc) =>
+                      deleteDoc(doc(db, "notifications", notifDoc.id))
+                    );
+                    await Promise.all(deletePromises);
+                    console.log("Related notifications cleaned up");
+                  }
+                } catch (cleanupError) {
+                  console.error("Error cleaning up notifications:", cleanupError);
+                  // Don't fail the whole operation if notification cleanup fails
+                }
+              }
+
+              setCancellingId(null);
+              Alert.alert("Success", "Hiring request cancelled successfully. Teacher has been notified.");
+            } catch (error) {
+              console.error("Error cancelling request:", error);
+              console.error("Error details:", error.message, error.code);
+              setCancellingId(null);
+              Alert.alert(
+                "Error",
+                `Failed to cancel request: ${error.message || "Please try again."}`
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007BFF" />
-        <Text>Loading your teachers...</Text>
+        <ActivityIndicator size="large" color="purple" />
+        <Text style={{ marginTop: 10 }}>Loading your teachers...</Text>
       </View>
     );
   }
 
-  if (teachers.length === 0) {
+  if (hiringRequests.length === 0) {
     return (
       <View style={styles.center}>
         <Ionicons name="school-outline" size={50} color="gray" />
-        <Text style={{ marginTop: 10 }}>You haven’t hired any teachers yet.</Text>
+        <Text style={{ marginTop: 10, fontSize: 16, color: "#666" }}>
+          You haven't sent any hiring requests yet.
+        </Text>
+        <Text style={{ marginTop: 5, fontSize: 14, color: "#999" }}>
+          Send a request to a teacher to see it here.
+        </Text>
       </View>
     );
   }
@@ -356,29 +559,62 @@ const HirePage = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={teachers}
+        data={hiringRequests}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate("TeacherProfile", { teacherId: item.teacherId })}
+            onPress={() => navigation.navigate("Studentviewprofile", { teacherId: item.teacherId })}
           >
             <Image
-              source={{ uri: item.teacherProfilePic || "https://via.placeholder.com/100" }}
+              source={
+                item.teacherPhoto
+                  ? { uri: item.teacherPhoto }
+                  : require("./Ali.jpeg")
+              }
               style={styles.image}
             />
             <View style={styles.info}>
               <Text style={styles.name}>{item.teacherName}</Text>
-              <Text style={styles.subject}>{item.subject}</Text>
-              <Text style={styles.date}>Hired on: {item.hireDate}</Text>
-              <Text
-                style={[
-                  styles.status,
-                  { color: item.status === "Active" ? "green" : "gray" },
-                ]}
-              >
-                {item.status}
-              </Text>
+              <Text style={styles.subject}>{item.teacherSubject || "Subject not specified"}</Text>
+              {item.teacherLocation && (
+                <Text style={styles.location}>📍 {item.teacherLocation}</Text>
+              )}
+              <Text style={styles.date}>Request sent: {formatDate(item.createdAt)}</Text>
+              <View style={styles.statusContainer}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: getStatusColor(item.status) },
+                  ]}
+                >
+                  <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                </View>
+                {item.status?.toLowerCase() === "pending" && (
+                  <TouchableOpacity
+                    style={[
+                      styles.cancelButton,
+                      cancellingId === item.id && { opacity: 0.6 }
+                    ]}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      console.log("Cancel button clicked for request:", item.id);
+                      if (item.id) {
+                        handleCancelRequest(item.id, item.teacherName || "Teacher", item);
+                      } else {
+                        Alert.alert("Error", "Request ID is missing");
+                      }
+                    }}
+                    disabled={cancellingId === item.id}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.cancelButtonText}>
+                      {cancellingId === item.id ? "Cancelling..." : "Cancel Request"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
         )}
@@ -397,39 +633,83 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: "row",
-    backgroundColor: "#f2f2f2",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: "#fff",
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 12,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   image: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 10,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginRight: 15,
+    borderWidth: 2,
+    borderColor: "#d8b4e2",
   },
   info: {
     flex: 1,
   },
   name: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
+    color: "#000",
+    marginBottom: 4,
   },
   subject: {
-    color: "#555",
+    fontSize: 14,
+    color: "purple",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  location: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 4,
   },
   date: {
     fontSize: 12,
     color: "#888",
+    marginBottom: 8,
   },
-  status: {
+  statusContainer: {
     marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    backgroundColor: "purple",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#fff",
+    fontSize: 12,
     fontWeight: "bold",
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
 });

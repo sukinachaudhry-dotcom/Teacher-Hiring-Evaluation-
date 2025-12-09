@@ -60,6 +60,8 @@ export default function MathCoursesPage({ navigation }) {
           });
         });
         setTeachers(teacherArray);
+        console.log(teacherArray,"teacherArray");
+        
         setLoading(false);
       }, (error) => {
         console.error('Error fetching math teachers:', error);
