@@ -12,7 +12,6 @@ const JobDetail = ({ route, navigation }) => {
   const [inst, setInst] = useState(null);
   const [isApplying, setIsApplying] = useState(false);
   const {user  } = useSelector((state)=>state.home)
-  alert (user.uid )
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState('');
 
@@ -90,6 +89,7 @@ const JobDetail = ({ route, navigation }) => {
         institutionId: job.institutionId,
         institutionName: inst?.institutionname || '',
         applicantId: user.uid,
+        userId: user.uid,
         status: 'Pending',
         appliedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

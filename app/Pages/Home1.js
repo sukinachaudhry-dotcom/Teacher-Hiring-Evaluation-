@@ -92,8 +92,8 @@ export default function App({ navigation }) {
 
 
                 <TouchableOpacity onPress={() => {
-                    // navigate to Settings defined in the parent StudentStack
-                    navigation.getParent()?.navigate('Settings');
+                    // navigate to Settings defined in the parent TeacherStack
+                    navigation.getParent()?.getParent()?.navigate('Settings');
                 }} >
                     <Ionicons name="settings" size={28} color='#fff' />
 
