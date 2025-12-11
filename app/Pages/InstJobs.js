@@ -19,6 +19,8 @@ const JobsScreen = ({navigation}) => {
     const unsub = onSnapshot(q, (snap) => {
       const list = [];
       snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+      console.log(list);
+      
       setJobs(list);
     }, () => setJobs([]));
     return () => unsub();
@@ -69,18 +71,6 @@ const JobsScreen = ({navigation}) => {
                 marginTop: 15,
               }}
             >
-              <TouchableOpacity onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                style={{
-                  backgroundColor: "purple",
-                  paddingVertical: 8,
-                  paddingHorizontal: 20,
-                  borderRadius: 20,
-                }}
-              >
-                
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>{expandedId === item.id ? "Hide" : "View"}</Text>
-              </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={() => navigation.navigate("EditJob", { jobId: item.id })}
                 style={{
@@ -88,7 +78,6 @@ const JobsScreen = ({navigation}) => {
                   paddingVertical: 8,
                   paddingHorizontal: 20,
                   borderRadius: 20,
-                  marginHorizontal: 5,
                 }}
               >
                 <Text style={{ color: "#fff", fontWeight: "bold" }}>Edit</Text>

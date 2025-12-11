@@ -209,6 +209,7 @@ const RenderStack = () => {
           <Stack.Screen name="InstitutionProfile" component={InstitutionProfile} />
           <Stack.Screen name="Home1" component={Home1} />
           <Stack.Screen name="Viewprofile" component={Viewprofile} />
+          <Stack.Screen name="ForgotPass" component={ForgotPass} />
 
         </Stack.Navigator>
       );

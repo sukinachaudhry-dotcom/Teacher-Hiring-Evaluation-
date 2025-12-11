@@ -43,7 +43,15 @@ export default function Viewprofile({ navigation, route }) {
         doc(db, "users", userId),
         (docSnap) => {
           if (docSnap.exists()) {
-            setProfileData({ id: docSnap.id, ...docSnap.data() });
+            const data = { id: docSnap.id, ...docSnap.data() };
+            // Debug: Log bio/introduction fields
+            console.log("Profile data loaded:", {
+              introduction: data.introduction,
+              description: data.description,
+              about: data.about,
+              bio: data.bio
+            });
+            setProfileData(data);
             setLoading(false);
           } else {
             // If document doesn't exist, try Redux data
@@ -240,7 +248,7 @@ export default function Viewprofile({ navigation, route }) {
             </View>
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
               Teacher Information
-            </Text>
+        </Text>
           </View>
           
           {profileData.email && (
@@ -276,7 +284,7 @@ export default function Viewprofile({ navigation, route }) {
               <Ionicons name="location-outline" size={18} color="purple" style={{ marginRight: 10, marginTop: 2 }} />
               <Text style={{ fontSize: 14, color: "#444", flex: 1 }}>
                 {profileData.address || profileData.location}
-        </Text>
+              </Text>
             </View>
           )}
         </View>
@@ -335,59 +343,62 @@ export default function Viewprofile({ navigation, route }) {
                 <Ionicons name="school" size={24} color="purple" />
                 <Text style={{ fontSize: 14, fontWeight: "600", marginTop: 8, color: "#1a1a1a", textAlign: "center" }}>
                   {profileData.qualification}
-                </Text>
+          </Text>
                 <Text style={{ fontSize: 12, color: "#666", marginTop: 4, textAlign: "center" }}>
                   Qualification
           </Text>
-              </View>
+        </View>
             )}
           </View>
         </View>
       )}
 
       {/* About Section */}
-      {(profileData.description || profileData.about || profileData.bio) && (
-        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+      {(() => {
+        const aboutText = profileData.introduction || profileData.description || profileData.about || profileData.bio;
+        return aboutText && aboutText.trim() ? (
+          <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
           <View
             style={{
-              backgroundColor: "#fff",
-              borderRadius: 12,
-              padding: 20,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.08,
-              shadowRadius: 8,
-              elevation: 3,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
-              <View style={{ 
-                width: 40, 
-                height: 40, 
-                borderRadius: 20, 
-                backgroundColor: "purple", 
-                justifyContent: "center", 
-                alignItems: "center",
-                marginRight: 12,
-              }}>
-                <Ionicons name="information-circle-outline" size={20} color="#fff" />
+                backgroundColor: "#fff",
+                borderRadius: 12,
+                padding: 20,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.08,
+                shadowRadius: 8,
+                elevation: 3,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+                <View style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 20, 
+                  backgroundColor: "purple", 
+                  justifyContent: "center", 
+                  alignItems: "center",
+                  marginRight: 12,
+                }}>
+                  <Ionicons name="information-circle-outline" size={20} color="#fff" />
+                </View>
+                <Text style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
+                  About
+            </Text>
               </View>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
-                About
-              </Text>
-            </View>
-            <Text style={{ fontSize: 14, color: "#444", lineHeight: 22, paddingLeft: 52 }}>
-              {profileData.introduction || profileData.description || profileData.about || profileData.bio}
+              <Text style={{ fontSize: 14, color: "#444", lineHeight: 22, paddingLeft: 52 }}>
+                {aboutText}
             </Text>
           </View>
         </View>
-      )}
+        ) : null;
+      })()}
 
       {/* Additional Information */}
       <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 30 }}>
-        <View
-          style={{
-            backgroundColor: "#fff",
+      <View
+        style={{
+          backgroundColor: "#fff",
             borderRadius: 12,
             padding: 20,
             shadowColor: "#000",
@@ -411,26 +422,33 @@ export default function Viewprofile({ navigation, route }) {
             </View>
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#1a1a1a" }}>
               Additional Information
-            </Text>
-          </View>
-          
-          {/* Bio/Description */}
-          {(profileData.description || profileData.about || profileData.bio || profileData.introduction) && (
-            <View style={{ 
-              marginBottom: 15,
-              paddingLeft: 52,
-              paddingBottom: 15,
-              borderBottomWidth: 1,
-              borderBottomColor: "#f0f0f0"
-            }}>
-              <Text style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
-                Bio / Introduction
-              </Text>
-              <Text style={{ fontSize: 14, color: "#1a1a1a", lineHeight: 20 }}>
-                {profileData.introduction || profileData.description || profileData.about || profileData.bio}
-              </Text>
-            </View>
-          )}
+        </Text>
+      </View>
+
+          {/* Bio/Description/Introduction */}
+          {(() => {
+            const bioText = profileData.introduction || profileData.description || profileData.about || profileData.bio;
+            // Debug log
+            if (bioText) {
+              console.log("Bio text found in Additional Information:", bioText);
+            }
+            return bioText && typeof bioText === 'string' && bioText.trim().length > 0 ? (
+              <View style={{ 
+                marginBottom: 15,
+                paddingLeft: 52,
+                paddingBottom: 15,
+                borderBottomWidth: 1,
+                borderBottomColor: "#f0f0f0"
+              }}>
+                <Text style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>
+                  Bio / Introduction
+                </Text>
+                <Text style={{ fontSize: 14, color: "#1a1a1a", lineHeight: 20 }}>
+                  {bioText.trim()}
+                </Text>
+              </View>
+            ) : null;
+          })()}
           
           {Object.keys(profileData).map((key) => {
             // Skip internal fields and already displayed fields
@@ -449,10 +467,10 @@ export default function Viewprofile({ navigation, route }) {
               }}>
                 <Text style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
                   {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-          </Text>
+                </Text>
                 <Text style={{ fontSize: 14, color: "#1a1a1a", fontWeight: "500" }}>
                   {String(profileData[key])}
-          </Text>
+                </Text>
               </View>
             );
           })}
@@ -495,3 +513,4 @@ export default function Viewprofile({ navigation, route }) {
     </ScrollView>
   );
 }
+

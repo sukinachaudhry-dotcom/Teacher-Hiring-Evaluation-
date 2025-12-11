@@ -26,6 +26,9 @@ export default function Applicants({ route }) {
   const navigation = useNavigation();
   const user = useSelector(state => state.home.user);
 
+
+  console.log(jobId);
+
   // Fetch job details
   React.useEffect(() => {
     if (!jobId) return;
@@ -44,68 +47,97 @@ export default function Applicants({ route }) {
     fetchJobDetails();
   }, [jobId]);
 
-  const fetchAllApplications = async () => {
-    if (!user?.uid) return;
+  const fetchApplicationsByJobId = async () => {
+    if (!jobId) {
+      console.warn('No jobId provided');
+      setApplicants([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     
     try {
       setLoading(true);
       const allApplications = [];
       
-      // 1. Get all jobs for this institution
-      const jobsQuery = query(
-        collection(db, 'post jobs'),
-        where('institutionId', '==', user.uid)
-      );
-      
-      const jobsSnapshot = await getDocs(jobsQuery);
-      
-      // 2. For each job, get all applications
-      for (const jobDoc of jobsSnapshot.docs) {
-        const jobData = jobDoc.data();
+      // 1. Fetch all applications for this specific jobId
+      let applicationsSnapshot;
+      let useManualSort = false;
+      try {
+        // Try with orderBy first
         const applicationsQuery = query(
           collection(db, 'applications'),
-          where('jobId', '==', jobDoc.id),
-          orderBy('appliedAt', 'desc')
+          where('jobId', '==', jobId),
+          orderBy('updatedAt', 'desc')
         );
+        applicationsSnapshot = await getDocs(applicationsQuery);
+        console.log('Applications fetched with orderBy:', applicationsSnapshot.docs.length);
+      } catch (error) {
+        // If orderBy fails (no index), use simple query and sort manually
+        console.warn('OrderBy failed, using simple query:', error.message);
+        useManualSort = true;
+        const applicationsQuery = query(
+          collection(db, 'applications'),
+          where('jobId', '==', jobId)
+        );
+        applicationsSnapshot = await getDocs(applicationsQuery);
+        console.log('Applications fetched without orderBy:', applicationsSnapshot.docs.length);
+      }
+      
+      console.log("Applications found:", applicationsSnapshot.docs.length);
+      
+      // Convert to array and sort manually if needed
+      let docsArray = Array.from(applicationsSnapshot.docs);
+      if (useManualSort) {
+        docsArray.sort((a, b) => {
+          const aTime = a.data().updatedAt?.toDate?.() || new Date(0);
+          const bTime = b.data().updatedAt?.toDate?.() || new Date(0);
+          return bTime - aTime; // Descending order
+        });
+      }
+      
+      // 2. For each application, fetch user data from users collection
+      for (const appDoc of docsArray) {
+        const appData = appDoc.data();
         
-        const applicationsSnapshot = await getDocs(applicationsQuery);
-
-        console.log("applicatoins" , applicationsSnapshot.docs);
-        
-        
-        // 3. For each application, get applicant info
-        for (const appDoc of applicationsSnapshot.docs) {
-          const appData = appDoc.data();
-          
-          // Only fetch user data if we have a teacher UID
-          if (appData.teacherUid) {
-            const userDoc = await getDoc(doc(db, 'users', appData.teacherUid));
+        // Fetch user data using userId from application document
+        if (appData.userId) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', appData.userId));
             if (userDoc.exists()) {
               const userData = userDoc.data();
               allApplications.push({
                 id: appDoc.id,
                 ...appData,
-                appliedAt: appData.appliedAt?.toDate?.() || new Date(),
-                jobTitle: jobData.jobTitle,
-                jobId: jobDoc.id,
+                updatedAt: appData.updatedAt?.toDate?.() || new Date(),
+                jobTitle: appData.jobTitle || jobDetails?.jobTitle || 'Job Title',
+                jobId: appData.jobId || jobId,
                 applicantInfo: userData,
                 name: userData?.name || userData?.fullname || 'Unnamed',
                 subject: userData?.teachingsubjects || userData?.subjects || '',
                 experience: userData?.experience || '',
                 location: userData?.location || userData?.address || '',
-                photoUrl: userData?.profileImage || userData?.photoUrl || null,
-                status: appData.status || 'pending'
+                photoUrl: userData?.profileImage || userData?.profilePicUrl || userData?.photoUrl || null,
+                status: appData.status || 'Pending',
+                userId: appData.userId
               });
+            } else {
+              console.warn('User not found for userId:', appData.userId);
             }
+          } catch (userError) {
+            console.error('Error fetching user data for userId:', appData.userId, userError);
           }
+        } else {
+          console.warn('Application missing userId:', appDoc.id);
         }
       }
       
+      console.log('Total applicants processed:', allApplications.length);
       setApplicants(allApplications);
-      setLoading(false);
-      setRefreshing(false);
     } catch (error) {
       console.error('Error fetching applications:', error);
+      setApplicants([]);
+    } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -113,19 +145,47 @@ export default function Applicants({ route }) {
   
   // Initial fetch
   useEffect(() => {
-    fetchAllApplications();
+    if (!jobId) {
+      console.warn('No jobId in route params');
+      setLoading(false);
+      return;
+    }
     
-    // Set up real-time listener for new applications
-    const unsubscribe = onSnapshot(collection(db, 'applications'), () => {
-      fetchAllApplications();
-    });
+    console.log('Fetching applications for jobId:', jobId);
+    fetchApplicationsByJobId();
     
-    return () => unsubscribe();
-  }, [user?.uid]);
+    // Set up real-time listener for applications of this specific job
+    try {
+      const applicationsQuery = query(
+        collection(db, 'applications'),
+        where('jobId', '==', jobId)
+      );
+      
+      const unsubscribe = onSnapshot(
+        applicationsQuery, 
+        () => {
+          console.log('Applications updated, refetching...');
+          fetchApplicationsByJobId();
+        },
+        (error) => {
+          console.error('Error in onSnapshot:', error);
+          setLoading(false);
+        }
+      );
+      
+      return () => {
+        console.log('Cleaning up listener');
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('Error setting up listener:', error);
+      setLoading(false);
+    }
+  }, [jobId]);
   
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAllApplications();
+    fetchApplicationsByJobId();
   };
 
   const renderApplicant = ({ item }) => (
@@ -170,7 +230,7 @@ export default function Applicants({ route }) {
             <Icon name="school" size={14} color="#666" /> {item.experience || 'N/A'} experience
           </Text>
           <Text style={[styles.detail, { color: '#666', fontSize: 12, marginTop: 5 }]}>
-            Applied on: {item.appliedAt?.toLocaleDateString?.() || 'N/A'}
+            Updated: {item.updatedAt?.toLocaleDateString?.() || 'N/A'}
           </Text>
         </View>
       </View>
@@ -203,10 +263,22 @@ export default function Applicants({ route }) {
         }
         ListHeaderComponent={
           <View style={styles.headerContainer}>
-            <Text style={styles.headerTitle}>All Applications</Text>
-            <Text style={styles.headerSubtitle}>
-              {applicants.length} application{applicants.length !== 1 ? 's' : ''} found
+            <Text style={styles.headerTitle}>
+              {jobDetails?.jobTitle || 'Job Applications'}
             </Text>
+            <Text style={styles.headerSubtitle}>
+              {applicants.length} applicant{applicants.length !== 1 ? 's' : ''} found
+            </Text>
+            {jobDetails && (
+              <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#eee' }}>
+                <Text style={styles.jobDetailText}>
+                  <Icon name="location-on" size={14} color="#666" /> {jobDetails.location || jobDetails.jobLocation || 'N/A'}
+                </Text>
+                <Text style={styles.jobDetailText}>
+                  <Icon name="attach-money" size={14} color="#666" /> {jobDetails.salary || 'N/A'}
+                </Text>
+              </View>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -239,6 +311,11 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  jobDetailText: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 5,
   },
   listContainer: {
     paddingBottom: 20,

@@ -128,11 +128,11 @@ const JobDetail = ({ route, navigation }) => {
       {/* Header Section with Image */}
       <View style={{ backgroundColor: "#fff", paddingBottom: 20 }}>
         {inst?.profileImage || inst?.profilePicUrl ? (
-          <Image
+        <Image
             source={{ uri: inst.profileImage || inst.profilePicUrl }}
             style={{ width: "100%", height: 250, resizeMode: "cover" }}
-          />
-        ) : (
+        />
+      ) : (
           <View style={{ width: "100%", height: 250, backgroundColor: "purple", justifyContent: "center", alignItems: "center" }}>
             <Ionicons name="business" size={80} color="#fff" />
           </View>
@@ -152,8 +152,8 @@ const JobDetail = ({ route, navigation }) => {
           elevation: 5,
         }}>
           <Text style={{ fontSize: 24, fontWeight: "bold", color: "#1a1a1a", marginBottom: 8 }}>
-            {job?.jobTitle || job?.jobVacancy || "Job Details"}
-          </Text>
+        {job?.jobTitle || job?.jobVacancy || "Job Details"}
+      </Text>
           <Text style={{ fontSize: 18, fontWeight: "600", color: "purple", marginBottom: 12 }}>
             {inst?.institutionname || "Institution"}
           </Text>
@@ -173,7 +173,7 @@ const JobDetail = ({ route, navigation }) => {
                 <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
                   {inst.type.charAt(0).toUpperCase() + inst.type.slice(1)}
                 </Text>
-              </View>
+      </View>
             )}
             {(job?.location || inst?.address) && (
               <View style={{ 
@@ -187,8 +187,8 @@ const JobDetail = ({ route, navigation }) => {
                 <Ionicons name="location-outline" size={16} color="purple" style={{ marginRight: 6 }} />
                 <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
                   {job?.location || inst?.address}
-                </Text>
-              </View>
+        </Text>
+      </View>
             )}
             {job?.salary && (
               <View style={{ 
@@ -202,7 +202,7 @@ const JobDetail = ({ route, navigation }) => {
                 <Ionicons name="cash-outline" size={16} color="purple" style={{ marginRight: 6 }} />
                 <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
                   {job.salary}
-                </Text>
+        </Text>
               </View>
             )}
           </View>
@@ -212,16 +212,16 @@ const JobDetail = ({ route, navigation }) => {
       {/* Job Details Section */}
       <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
         {/* Requirements Section */}
-        <View style={{
+      <View style={{
           backgroundColor: "#fff",
           borderRadius: 12,
           padding: 20,
-          marginBottom: 15,
-          shadowColor: "#000",
+        marginBottom: 15,
+        shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.08,
           shadowRadius: 8,
-          elevation: 3,
+        elevation: 3,
         }}>
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
             <View style={{ 
@@ -237,9 +237,9 @@ const JobDetail = ({ route, navigation }) => {
             </View>
             <Text style={{ fontSize: 20, fontWeight: "bold", color: "#1a1a1a" }}>
               Job Requirements
-            </Text>
-          </View>
-          
+          </Text>
+        </View>
+
           {job?.subject && (
             <View style={{ 
               flexDirection: "row", 
@@ -285,8 +285,8 @@ const JobDetail = ({ route, navigation }) => {
                 <Text style={{ fontSize: 13, color: "#888", marginBottom: 2 }}>Job Type / Timing</Text>
                 <Text style={{ fontSize: 15, color: "#1a1a1a", fontWeight: "500" }}>
                   {job.jobType}
-                </Text>
-              </View>
+          </Text>
+        </View>
             </View>
           )}
 
@@ -303,20 +303,20 @@ const JobDetail = ({ route, navigation }) => {
               </Text>
             </View>
           )}
-        </View>
+      </View>
 
         {/* Description Section */}
         {job?.description && (
-          <View style={{
+      <View style={{
             backgroundColor: "#fff",
             borderRadius: 12,
             padding: 20,
-            marginBottom: 15,
-            shadowColor: "#000",
+        marginBottom: 15,
+        shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.08,
             shadowRadius: 8,
-            elevation: 3,
+        elevation: 3,
           }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
               <View style={{ 
@@ -336,7 +336,7 @@ const JobDetail = ({ route, navigation }) => {
             </View>
             <Text style={{ fontSize: 15, color: "#444", lineHeight: 24, paddingLeft: 52 }}>
               {job.description}
-            </Text>
+        </Text>
           </View>
         )}
 
@@ -367,9 +367,9 @@ const JobDetail = ({ route, navigation }) => {
               </View>
               <Text style={{ fontSize: 20, fontWeight: "bold", color: "#1a1a1a" }}>
                 About Institution
-              </Text>
-            </View>
-            
+        </Text>
+      </View>
+
             {inst?.email && (
               <View style={{ 
                 flexDirection: "row", 
@@ -410,33 +410,33 @@ const JobDetail = ({ route, navigation }) => {
 
       {/* Apply Button Section */}
       <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-        <TouchableOpacity 
-          onPress={handleApply}
-          disabled={isApplying || hasApplied}
-          style={{
+      <TouchableOpacity 
+        onPress={handleApply}
+        disabled={isApplying || hasApplied}
+        style={{
             backgroundColor: hasApplied 
               ? (applicationStatus === 'Approved' ? '#4CAF50' : applicationStatus === 'Rejected' ? '#F44336' : '#FF9800')
               : 'purple',
             paddingVertical: 18,
             paddingHorizontal: 30,
             borderRadius: 12,
-            alignItems: "center",
+          alignItems: "center",
             justifyContent: "center",
-            opacity: isApplying ? 0.7 : 1,
+          opacity: isApplying ? 0.7 : 1,
             shadowColor: "purple",
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: hasApplied ? 0 : 0.3,
             shadowRadius: 8,
             elevation: hasApplied ? 0 : 5,
             flexDirection: "row",
-          }}
-        >
-          {isApplying ? (
+        }}
+      >
+        {isApplying ? (
             <>
               <Ionicons name="hourglass-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>Applying...</Text>
             </>
-          ) : hasApplied ? (
+        ) : hasApplied ? (
             <>
               {applicationStatus === 'Approved' && (
                 <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
@@ -448,20 +448,20 @@ const JobDetail = ({ route, navigation }) => {
                 <Ionicons name="time-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
               )}
               <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>
-                {applicationStatus === 'Approved' ? 'Application Approved' : 
-                 applicationStatus === 'Rejected' ? 'Application Rejected' : 
-                 'Application Submitted'}
-              </Text>
+            {applicationStatus === 'Approved' ? 'Application Approved' : 
+             applicationStatus === 'Rejected' ? 'Application Rejected' : 
+             'Application Submitted'}
+          </Text>
             </>
-          ) : (
+        ) : (
             <>
               <Ionicons name="send-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
               <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>Apply Now</Text>
             </>
-          )}
-        </TouchableOpacity>
+        )}
+      </TouchableOpacity>
         
-        {hasApplied && applicationStatus === 'Pending' && (
+      {hasApplied && applicationStatus === 'Pending' && (
           <View style={{
             marginTop: 15,
             backgroundColor: "#FFF3E0",
@@ -477,10 +477,10 @@ const JobDetail = ({ route, navigation }) => {
               </Text>
             </View>
             <Text style={{ fontSize: 13, color: "#666", lineHeight: 18, paddingLeft: 26 }}>
-              Your application is under review. We'll notify you once there's an update.
-            </Text>
+          Your application is under review. We'll notify you once there's an update.
+        </Text>
           </View>
-        )}
+      )}
       </View>
     </ScrollView>
   );

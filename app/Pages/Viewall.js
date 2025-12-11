@@ -48,19 +48,19 @@ export default function Viewall({ navigation, route }) {
             experienceYears: years,
             ...data
           });
-        });
-        
-        // Sort by experience (highest first), then by account age (oldest first)
-        teacherArray.sort((a, b) => {
-          // First sort by experience
-          const expDiff = (b.experienceYears || 0) - (a.experienceYears || 0);
-          if (expDiff !== 0) return expDiff;
+          });
           
-          // If experience is same, sort by account age (oldest first)
-          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return aTime - bTime; // Ascending (oldest first)
-        });
+          // Sort by experience (highest first), then by account age (oldest first)
+        teacherArray.sort((a, b) => {
+            // First sort by experience
+            const expDiff = (b.experienceYears || 0) - (a.experienceYears || 0);
+            if (expDiff !== 0) return expDiff;
+            
+            // If experience is same, sort by account age (oldest first)
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return aTime - bTime; // Ascending (oldest first)
+          });
         
         setTeachers(teacherArray);
         setLoading(false);
@@ -105,7 +105,7 @@ export default function Viewall({ navigation, route }) {
       {/* Profile Picture */}
       <View style={{ alignItems: "center", marginBottom: 12 }}>
         {teacher.photoUrl || teacher.profileImage ? (
-          <Image
+      <Image
             source={{ uri: teacher.photoUrl || teacher.profileImage }}
             style={{ width: 70, height: 70, borderRadius: 35, borderWidth: 2, borderColor: "purple" }}
           />
@@ -295,7 +295,7 @@ export default function Viewall({ navigation, route }) {
               }}
             >
               All Teachers
-            </Text>
+              </Text>
             <View style={{ 
               backgroundColor: "purple", 
               paddingHorizontal: 12, 
@@ -311,8 +311,8 @@ export default function Viewall({ navigation, route }) {
           {loading ? (
             <View style={{ alignItems: "center", marginTop: 40 }}>
               <Text style={{ textAlign: "center", color: "#666", fontSize: 16 }}>
-                Loading teachers...
-              </Text>
+              Loading teachers...
+            </Text>
             </View>
           ) : (
             <View
@@ -330,8 +330,8 @@ export default function Viewall({ navigation, route }) {
                 <View style={{ width: '100%', alignItems: "center", marginTop: 40 }}>
                   <Ionicons name="search-outline" size={50} color="#ccc" />
                   <Text style={{ textAlign: "center", marginTop: 15, color: "#666", fontSize: 16 }}>
-                    No teachers found
-                  </Text>
+                  No teachers found
+                </Text>
                   <Text style={{ textAlign: "center", marginTop: 5, color: "#999", fontSize: 14 }}>
                     Try a different search term
                   </Text>

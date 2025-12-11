@@ -338,7 +338,7 @@ export default function App({ navigation }) {
                         )}
                             </View>
                             
-                            {!!item.experience && (
+                        {!!item.experience && (
                                 <View style={{ 
                                     flexDirection: "row", 
                                     alignItems: "center", 
@@ -397,20 +397,34 @@ export default function App({ navigation }) {
                                         const auth = getAuth();
                                         const currentUser = auth.currentUser;
                                         
-                                        if (currentUser && item.institutionId) {
-                                            const conversationId = await getOrCreateConversation(currentUser.uid, item.institutionId);
-                                            const otherUser = await getDataById('users', item.institutionId);
-                                            navigation.navigate('ChatScreen', {
-                                                conversationId,
-                                                otherUser: {
-                                                    id: item.institutionId,
-                                                    name: otherUser?.institutionname || 'Institution',
-                                                    photoUrl: otherUser?.profileImage || null,
-                                                }
-                                            });
+                                        if (!currentUser) {
+                                            console.error('User not logged in');
+                                            return;
                                         }
+                                        
+                                        if (!item.institutionId) {
+                                            console.error('Institution ID not available');
+                                            return;
+                                        }
+                                        
+                                        console.log('Starting chat with institution:', item.institutionId);
+                                        const conversationId = await getOrCreateConversation(currentUser.uid, item.institutionId);
+                                        console.log('Conversation ID:', conversationId);
+                                        
+                                        const otherUser = await getDataById('users', item.institutionId);
+                                        console.log('Other user data:', otherUser);
+                                        
+                                        navigation.navigate('ChatScreen', {
+                                            conversationId,
+                                            otherUser: {
+                                                id: item.institutionId,
+                                                name: otherUser?.institutionname || 'Institution',
+                                                photoUrl: otherUser?.profileImage || otherUser?.profilePicUrl || null,
+                                            }
+                                        });
                                     } catch (error) {
                                         console.error('Error starting chat:', error);
+                                        alert('Failed to start chat. Please try again.');
                                     }
                                 }}
                                 style={{ 
@@ -577,7 +591,7 @@ export default function App({ navigation }) {
                         )}
                             </View>
                             
-                            {!!item.experience && (
+                        {!!item.experience && (
                                 <View style={{ 
                                     flexDirection: "row", 
                                     alignItems: "center", 
@@ -636,20 +650,34 @@ export default function App({ navigation }) {
                                         const auth = getAuth();
                                         const currentUser = auth.currentUser;
                                         
-                                        if (currentUser && item.institutionId) {
-                                            const conversationId = await getOrCreateConversation(currentUser.uid, item.institutionId);
-                                            const otherUser = await getDataById('users', item.institutionId);
-                                            navigation.navigate('ChatScreen', {
-                                                conversationId,
-                                                otherUser: {
-                                                    id: item.institutionId,
-                                                    name: otherUser?.institutionname || 'Institution',
-                                                    photoUrl: otherUser?.profileImage || null,
-                                                }
-                                            });
+                                        if (!currentUser) {
+                                            console.error('User not logged in');
+                                            return;
                                         }
+                                        
+                                        if (!item.institutionId) {
+                                            console.error('Institution ID not available');
+                                            return;
+                                        }
+                                        
+                                        console.log('Starting chat with institution:', item.institutionId);
+                                        const conversationId = await getOrCreateConversation(currentUser.uid, item.institutionId);
+                                        console.log('Conversation ID:', conversationId);
+                                        
+                                        const otherUser = await getDataById('users', item.institutionId);
+                                        console.log('Other user data:', otherUser);
+                                        
+                                        navigation.navigate('ChatScreen', {
+                                            conversationId,
+                                            otherUser: {
+                                                id: item.institutionId,
+                                                name: otherUser?.institutionname || 'Institution',
+                                                photoUrl: otherUser?.profileImage || otherUser?.profilePicUrl || null,
+                                            }
+                                        });
                                     } catch (error) {
                                         console.error('Error starting chat:', error);
+                                        alert('Failed to start chat. Please try again.');
                                     }
                                 }}
                                 style={{ 

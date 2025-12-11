@@ -74,6 +74,7 @@ export default function Institutehome({ navigation }) {
 
   // Applicants -> Teachers (real-time)
   const [teachers, setTeachers] = React.useState([]);
+  const [searchText, setSearchText] = React.useState('');
 
   React.useEffect(() => {
     let userUnsubs = [];
@@ -126,6 +127,20 @@ export default function Institutehome({ navigation }) {
       console.log('applicants subscribe error', e);
     }
   }, []);
+
+  // Filter teachers based on search text
+  const filteredTeachers = React.useMemo(() => {
+    if (!searchText.trim()) {
+      return teachers;
+    }
+    
+    const searchLower = searchText.toLowerCase().trim();
+    return teachers.filter(teacher => {
+      const name = (teacher.name || '').toLowerCase();
+      const subject = (teacher.teachingsubjects || teacher.subjects || '').toLowerCase();
+      return name.includes(searchLower) || subject.includes(searchLower);
+    });
+  }, [teachers, searchText]);
 
   // Teacher Card Component
   const TeacherCard = ({ teacher }) => (
@@ -216,8 +231,10 @@ export default function Institutehome({ navigation }) {
 
           {/* Search Bar */}
           <TextInput
-            placeholder="Search Jobs"
+            placeholder="Search Teachers by Name or Subject"
             placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={setSearchText}
             style={{
               flex: 1,
               backgroundColor: '#fff',
@@ -330,10 +347,12 @@ export default function Institutehome({ navigation }) {
         </View>
       
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
-        {teachers.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No popular teachers yet.</Text>
+        {filteredTeachers.length === 0 ? (
+          <Text style={{ textAlign: 'center', marginTop: 10, width: '100%', color: '#666' }}>
+            {searchText.trim() ? 'No teachers found matching your search.' : 'No popular teachers yet.'}
+          </Text>
         ) : (
-          teachers.slice(0, 6).map((teacher, index) => (
+          filteredTeachers.slice(0, 6).map((teacher, index) => (
             <TeacherCard key={teacher.id || index} teacher={teacher} />
           ))
         )}
@@ -354,10 +373,12 @@ export default function Institutehome({ navigation }) {
         </Text>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
-        {teachers.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 10, width: '100%' }}>No recent teachers yet.</Text>
+        {filteredTeachers.length === 0 ? (
+          <Text style={{ textAlign: 'center', marginTop: 10, width: '100%', color: '#666' }}>
+            {searchText.trim() ? 'No teachers found matching your search.' : 'No recent teachers yet.'}
+          </Text>
         ) : (
-          teachers.slice(0, 6).map((teacher, index) => (
+          filteredTeachers.slice(0, 6).map((teacher, index) => (
             <TeacherCard key={(teacher.id ? `r_${teacher.id}` : `r_${index}`)} teacher={teacher} />
           ))
         )}

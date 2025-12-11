@@ -130,8 +130,8 @@ export default function InstBrowse({ navigation }) {
               )}
               
               {job.classLevel && (
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                  <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
+              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 14, color: "#333" }}>Class: {job.classLevel}</Text>
                 </View>
               )}
@@ -147,12 +147,12 @@ export default function InstBrowse({ navigation }) {
                 <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
                   <Ionicons name="briefcase-outline" size={18} color="black" style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 14, color: "#333" }}>Experience: {job.experience}</Text>
-                </View>
+              </View>
               )}
               
               {job.salary && (
-                <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                  <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
+              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
+                <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 14, color: "#333", fontWeight: "600" }}>Salary: {job.salary}</Text>
                 </View>
               )}
@@ -163,7 +163,7 @@ export default function InstBrowse({ navigation }) {
                   <Text style={{ fontSize: 12, color: "#666" }} numberOfLines={2}>
                     {job.requirements}
                   </Text>
-                </View>
+              </View>
               )}
               
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>

@@ -363,9 +363,9 @@ export default function App({ navigation }) {
                 {/* Learning System Section */}
                 {!searchQuery.trim() && (
                     <>
-                    <Text style={{ marginLeft: 10, fontSize: 16, fontWeight: 'bold' }}>
-                        Learning System
-                    </Text>
+                <Text style={{ marginLeft: 10, fontSize: 16, fontWeight: 'bold' }}>
+                    Learning System
+                </Text>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
                     {categories.length === 0 ? (
