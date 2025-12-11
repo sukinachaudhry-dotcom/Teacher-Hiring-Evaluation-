@@ -15,7 +15,8 @@ import { auth, db } from "../../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { uploadImageToCloudinary } from "../Helper/firebaseHelper";
 
-const EditInstitutionProfile = ({ navigation }) => {
+const EditInstitutionProfile = ({ navigation, route }) => {
+  const profileData = route?.params?.profileData || null;
   const [institutionname, setInstitutionname] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -34,11 +35,19 @@ const EditInstitutionProfile = ({ navigation }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        const uid = auth?.currentUser?.uid;
-        if (!uid) return;
-        const snap = await getDoc(doc(db, "users", uid));
-        if (snap.exists()) {
-          const data = snap.data();
+        let data = profileData;
+        
+        // If profileData not passed, fetch from Firebase
+        if (!data) {
+          const uid = auth?.currentUser?.uid;
+          if (!uid) return;
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) {
+            data = { id: snap.id, ...snap.data() };
+          }
+        }
+
+        if (data) {
           setInstitutionname(data.institutionname || "");
           setEmail(data.email || "");
           setAddress(data.address || "");
@@ -55,7 +64,7 @@ const EditInstitutionProfile = ({ navigation }) => {
       }
     };
     load();
-  }, []);
+  }, [profileData]);
 
   // Pickers (same UX as create form)
   const pickProfileImage = async () => {

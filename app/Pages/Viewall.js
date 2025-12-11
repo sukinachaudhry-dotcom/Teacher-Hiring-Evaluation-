@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '../../firebase';
@@ -83,39 +84,146 @@ export default function Viewall({ navigation, route }) {
   );
 
   const TeacherCard = ({ teacher }) => (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
       style={{
         width: "48%",
         backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 15,
+        borderRadius: 16,
+        padding: 15,
+        marginBottom: 16,
         shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: "#e0e0e0",
       }}
     >
-      <Image
-        source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
-        style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
-      />
-      <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
-      <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
-      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
-      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
+      {/* Profile Picture */}
+      <View style={{ alignItems: "center", marginBottom: 12 }}>
+        {teacher.photoUrl || teacher.profileImage ? (
+          <Image
+            source={{ uri: teacher.photoUrl || teacher.profileImage }}
+            style={{ width: 70, height: 70, borderRadius: 35, borderWidth: 2, borderColor: "purple" }}
+          />
+        ) : (
+          <View style={{ 
+            width: 70, 
+            height: 70, 
+            borderRadius: 35, 
+            backgroundColor: "#f5f5f5",
+            justifyContent: "center",
+            alignItems: "center",
+            borderWidth: 2,
+            borderColor: "purple"
+          }}>
+            <Ionicons name="person" size={35} color="purple" />
+          </View>
+        )}
+      </View>
+
+      {/* Teacher Name */}
+      <Text style={{ 
+        marginTop: 5, 
+        fontWeight: 'bold', 
+        fontSize: 16,
+        textAlign: "center",
+        color: "#1a1a1a",
+        marginBottom: 4
+      }}>
+        {teacher.name || 'Unnamed'}
+      </Text>
+
+      {/* Subject */}
+      {teacher.teachingsubjects && (
+        <View style={{ 
+          flexDirection: "row", 
+          alignItems: "center", 
+          justifyContent: "center",
+          marginBottom: 6,
+          backgroundColor: "#f8f8f8",
+          paddingVertical: 4,
+          paddingHorizontal: 8,
+          borderRadius: 8,
+          alignSelf: "center"
+        }}>
+          <Ionicons name="book-outline" size={14} color="purple" style={{ marginRight: 4 }} />
+          <Text style={{ 
+            fontSize: 12, 
+            color: "#444",
+            fontWeight: "500"
+          }}>
+            {teacher.teachingsubjects}
+          </Text>
+        </View>
+      )}
+
+      {/* Location */}
+      {teacher.location && (
+        <View style={{ 
+          flexDirection: "row", 
+          alignItems: "center", 
+          justifyContent: "center",
+          marginBottom: 4
+        }}>
+          <Ionicons name="location-outline" size={12} color="#666" style={{ marginRight: 4 }} />
+          <Text style={{ fontSize: 11, color: '#666', textAlign: "center" }}>
+            {teacher.location}
+          </Text>
+        </View>
+      )}
+
+      {/* Experience */}
+      {teacher.experience && (
+        <View style={{ 
+          flexDirection: "row", 
+          alignItems: "center", 
+          justifyContent: "center",
+          marginBottom: 10
+        }}>
+          <Ionicons name="briefcase-outline" size={12} color="#666" style={{ marginRight: 4 }} />
+          <Text style={{ fontSize: 11, color: '#666', textAlign: "center" }}>
+            {teacher.experience}
+          </Text>
+        </View>
+      )}
 
       {/* Buttons */}
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, gap: 6 }}>
         <TouchableOpacity
-          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
-          onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
+          style={{ 
+            backgroundColor: "purple", 
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            borderRadius: 10, 
+            flex: 1,
+            marginRight: 3
+          }}
+          onPress={(e) => {
+            e.stopPropagation();
+            navigation.navigate("Studentviewprofile", { teacherId: teacher.id });
+          }}
         >
-          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 12, fontWeight: "600" }}>
+            Detail
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
-          onPress={async () => {
+          style={{ 
+            backgroundColor: "#fff", 
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            borderRadius: 10, 
+            flex: 1,
+            marginLeft: 3,
+            borderWidth: 1.5,
+            borderColor: "purple"
+          }}
+          onPress={async (e) => {
+            e.stopPropagation();
             try {
               const auth = getAuth();
               const currentUser = auth.currentUser;
@@ -137,55 +245,75 @@ export default function Viewall({ navigation, route }) {
             }
           }}
         >
-          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
+          <Text style={{ color: "purple", textAlign: "center", fontSize: 12, fontWeight: "600" }}>
+            Chat
+          </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <ScrollView style={{ backgroundColor: "#fff", flex: 1 }}>
-        {/* 🔍 Search Bar */}
+        {/* Search Bar */}
         <View
           style={{
             backgroundColor: "purple",
-            paddingVertical: 20,
-            paddingHorizontal: 10,
+            paddingVertical: 15,
+            paddingHorizontal: 15,
           }}
         >
           <TextInput
-            placeholder="Search Teachers"
+            placeholder="Search Teachers by name, subject, or location"
             placeholderTextColor="#999"
             value={search}
             onChangeText={setSearch}
             style={{
               backgroundColor: '#fff',
-              marginHorizontal: 10,
-              borderRadius: 20,
-              paddingHorizontal: 15,
-              height: 40,
+              borderRadius: 25,
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              fontSize: 14,
             }}
           />
         </View>
 
-        {/* 👨‍🏫 Teacher Cards */}
-        <View style={{ paddingHorizontal: 10 }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "bold",
-              color: "purple",
-              marginVertical: 10,
-            }}
-          >
-            All Teachers ({filteredTeachers.length})
-          </Text>
+        {/* Teacher Cards */}
+        <View style={{ paddingHorizontal: 15, paddingTop: 15 }}>
+          <View style={{ 
+            flexDirection: "row", 
+            justifyContent: "space-between", 
+            alignItems: "center",
+            marginBottom: 15
+          }}>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "bold",
+                color: "#1a1a1a",
+              }}
+            >
+              All Teachers
+            </Text>
+            <View style={{ 
+              backgroundColor: "purple", 
+              paddingHorizontal: 12, 
+              paddingVertical: 6, 
+              borderRadius: 15 
+            }}>
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
+                {filteredTeachers.length}
+              </Text>
+            </View>
+          </View>
           
           {loading ? (
-            <Text style={{ textAlign: "center", marginTop: 20, color: "gray" }}>
-              Loading teachers...
-            </Text>
+            <View style={{ alignItems: "center", marginTop: 40 }}>
+              <Text style={{ textAlign: "center", color: "#666", fontSize: 16 }}>
+                Loading teachers...
+              </Text>
+            </View>
           ) : (
             <View
               style={{
@@ -199,9 +327,15 @@ export default function Viewall({ navigation, route }) {
                   <TeacherCard key={teacher.id || index} teacher={teacher} />
                 ))
               ) : (
-                <Text style={{ textAlign: "center", marginTop: 20, color: "gray", width: '100%' }}>
-                  No teachers found
-                </Text>
+                <View style={{ width: '100%', alignItems: "center", marginTop: 40 }}>
+                  <Ionicons name="search-outline" size={50} color="#ccc" />
+                  <Text style={{ textAlign: "center", marginTop: 15, color: "#666", fontSize: 16 }}>
+                    No teachers found
+                  </Text>
+                  <Text style={{ textAlign: "center", marginTop: 5, color: "#999", fontSize: 14 }}>
+                    Try a different search term
+                  </Text>
+                </View>
               )}
             </View>
           )}

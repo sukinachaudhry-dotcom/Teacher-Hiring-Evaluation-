@@ -1,13 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { Dropdown } from "react-native-element-dropdown";
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
-const UpdateTeacherProfile = ({ navigation }) => {
+const UpdateTeacherProfile = ({ navigation, route }) => {
+  const profileData = route?.params?.profileData || null;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [highestQualification, setHighestQualification] = useState("Masters in CS");
+  const [highestQualification, setHighestQualification] = useState(null);
   const qualificationData = [
     { label: "Bachelor’s (BA / BSc / BS / B.Ed)", value: "bachelors" },
     { label: "Master’s (MA / MSc / MS / M.Ed)", value: "masters" },
@@ -18,7 +22,7 @@ const UpdateTeacherProfile = ({ navigation }) => {
     { label: "IT/Skill Certification (React, Python, AWS, etc.)", value: "it" },
 
   ];
-  const [preferredteachinglevel, setPreferredTeachingLevel] = useState("College Level");
+  const [preferredteachinglevel, setPreferredTeachingLevel] = useState(null);
   const teachingLevelData = [
     { label: "Primary (Grade 1–5)", value: "primary" },
     { label: "Middle (Grade 6–8)", value: "middle" },
@@ -28,7 +32,7 @@ const UpdateTeacherProfile = ({ navigation }) => {
     { label: "Postgraduate (Master’s/PhD Level)", value: "postgrad" },
     { label: "Professional Courses (IT, Skills, Test Prep)", value: "professional" },
   ];
-  const [preferredteachingtype, setPreferredTeachingType] = useState("Online");
+  const [preferredteachingtype, setPreferredTeachingType] = useState(null);
   const teachingTypeData = [
     { label: "Home Tuition", value: "home" },
     { label: "School/College", value: "school" },
@@ -36,8 +40,8 @@ const UpdateTeacherProfile = ({ navigation }) => {
     { label: "Courses", value: "exam" },
   ];
 
-  const [experience, setExperience] = useState("3 Years");
-  const [teachingsubjects, setTeachingsubjects] = useState("Computer Science, Math");
+  const [experience, setExperience] = useState("");
+  const [teachingsubjects, setTeachingsubjects] = useState(null);
   const subjectsData = [
     { label: "Mathematics", value: "math" },
     { label: "Physics", value: "physics" },
@@ -57,7 +61,7 @@ const UpdateTeacherProfile = ({ navigation }) => {
     { label: "Machine Learning", value: "ml" },
     { label: "Artificial Intelligence", value: "ai" },
   ];
-  const [location, setLocation] = useState("Lahore, Pakistan");
+  const [location, setLocation] = useState(null);
   const locationData = [
     { label: "Lahore", value: "lahore" },
     { label: "Karachi", value: "karachi" },
@@ -67,6 +71,43 @@ const UpdateTeacherProfile = ({ navigation }) => {
     { label: "Peshawar", value: "peshawar" },
     { label: "Quetta", value: "quetta" },
   ];
+
+  // Load existing profile data
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        let data = profileData;
+        
+        // If profileData not passed, fetch from Firebase
+        if (!data) {
+          const auth = getAuth();
+          const currentUser = auth.currentUser;
+          if (currentUser?.uid) {
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if (docSnap.exists()) {
+              data = { id: docSnap.id, ...docSnap.data() };
+            }
+          }
+        }
+
+        if (data) {
+          // Pre-fill form fields with existing data
+          setName(data.fullname || data.name || "");
+          setEmail(data.email || "");
+          setHighestQualification(data.highestqualification || data.qualification || null);
+          setPreferredTeachingLevel(data.preferredteachinglevel || data.teachinglevel || null);
+          setPreferredTeachingType(data.preferredteachingtype || data.teachingtype || null);
+          setExperience(data.experience || "");
+          setTeachingsubjects(data.teachingsubjects || data.subjects || null);
+          setLocation(data.location || data.address || null);
+        }
+      } catch (error) {
+        console.error("Error loading profile data:", error);
+      }
+    };
+
+    loadProfileData();
+  }, [profileData]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
@@ -119,6 +160,7 @@ const UpdateTeacherProfile = ({ navigation }) => {
         >
           <Ionicons name="person-circle-outline" size={20} color="purple" />
           <TextInput
+            value={name}
             onChangeText={(e) => setName(e)}
             placeholder="Enter Name"
             placeholderTextColor="#999"
@@ -144,6 +186,7 @@ const UpdateTeacherProfile = ({ navigation }) => {
         >
           <Ionicons name="mail-outline" size={20} color="purple" />
           <TextInput
+            value={email}
             onChangeText={(e) => setEmail(e)}
             placeholder="Enter Email"
             placeholderTextColor="#999"
@@ -276,8 +319,9 @@ const UpdateTeacherProfile = ({ navigation }) => {
           <TextInput
             value={experience}
             onChangeText={setExperience}
-
-            style={{ flex: 1, color: "#999", marginLeft: 8 }}
+            placeholder="Enter Experience"
+            placeholderTextColor="#999"
+            style={{ flex: 1, color: "#333", marginLeft: 8 }}
           />
         </View>
 
@@ -349,7 +393,21 @@ const UpdateTeacherProfile = ({ navigation }) => {
 
         {/* Button */}
         <TouchableOpacity
-          onPress={() => navigation.navigate("EditDocs")}
+          onPress={() => {
+            // Pass all current form data to EditDocs
+            const formData = {
+              name,
+              email,
+              highestQualification,
+              preferredteachinglevel,
+              preferredteachingtype,
+              experience,
+              teachingsubjects,
+              location,
+              profileData: profileData, // Pass original profile data too
+            };
+            navigation.navigate("EditDocs", { formData, profileData });
+          }}
           style={{
             backgroundColor: "purple",
             paddingVertical: 12,

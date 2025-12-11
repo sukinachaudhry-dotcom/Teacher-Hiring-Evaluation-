@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
-const EditDocs = ({ navigation }) => {
-  const [resume, setResume] = useState("MyResume.pdf");
-  const [certificates, setCertificates] = useState("TeachingCertificate.png");
+const EditDocs = ({ navigation, route }) => {
+  const { formData, profileData } = route?.params || {};
+  const [resume, setResume] = useState("");
+  const [certificates, setCertificates] = useState("");
   const [availability, setAvailability] = useState(null);
   const availabilityData = [
     { label: "Morning (8am–12pm)", value: "morning" },
@@ -17,15 +21,48 @@ const EditDocs = ({ navigation }) => {
     { label: "Flexible", value: "flexible" },
   ];
   const [languages, setLanguages] = useState(null);
- const languageData = [
+  const languageData = [
     { label: "English", value: "english" },
     { label: "Urdu", value: "urdu" },
     { label: "French", value: "french" },
     { label: "Spanish", value: "spanish" },
     { label: "Arabic", value: "arabic" },
-    
   ];
-  const [bio, setBio] = useState("I am a passionate teacher with 3 years of experience...");
+  const [bio, setBio] = useState("");
+
+  // Load existing profile data
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        let data = profileData;
+        
+        // If profileData not passed, fetch from Firebase
+        if (!data) {
+          const auth = getAuth();
+          const currentUser = auth.currentUser;
+          if (currentUser?.uid) {
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if (docSnap.exists()) {
+              data = { id: docSnap.id, ...docSnap.data() };
+            }
+          }
+        }
+
+        if (data) {
+          // Pre-fill form fields with existing data
+          setResume(data.resume || "");
+          setCertificates(data.certificates || "");
+          setAvailability(data.availability || null);
+          setLanguages(data.languageknown || data.languages || null);
+          setBio(data.introduction || data.bio || data.description || "");
+        }
+      } catch (error) {
+        console.error("Error loading profile data:", error);
+      }
+    };
+
+    loadProfileData();
+  }, [profileData]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
@@ -103,6 +140,8 @@ const EditDocs = ({ navigation }) => {
           <TextInput
             value={certificates}
             onChangeText={setCertificates}
+            placeholder="Certificate URL or filename"
+            placeholderTextColor="#999"
             style={{ flex: 1, color: "#333", marginLeft: 8 }}
           />
         </View>
@@ -183,7 +222,9 @@ const EditDocs = ({ navigation }) => {
             value={bio}
             onChangeText={setBio}
             multiline
-            style={{ height: 80, color: "#999" }}
+            placeholder="Enter your bio or introduction"
+            placeholderTextColor="#999"
+            style={{ height: 80, color: "#333", textAlignVertical: "top" }}
           />
         </View>
 

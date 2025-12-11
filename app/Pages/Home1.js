@@ -3,8 +3,9 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Carousel from "react-native-reanimated-carousel";
 import { useEffect } from 'react';
 import React, { useState } from 'react';
-import { getAllData } from '../Helper/firebaseHelper';
+import { getAllData, getOrCreateConversation, getDataById } from '../Helper/firebaseHelper';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '../../firebase';
 
 const { width } = Dimensions.get("window");
@@ -19,6 +20,7 @@ export default function App({ navigation }) {
     const [data, setData] = useState([]);
     const [jobs, setJobs] = useState([]);
     const [privateJobs, setPrivateJobs] = useState([]);
+    const [institutionData, setInstitutionData] = useState({}); // Store institution data by institutionId
 
     const getDataFromDatabase = async () => {
 
@@ -36,10 +38,29 @@ export default function App({ navigation }) {
     // Subscribe to real-time institution jobs
     useEffect(() => {
         const q = query(collection(db, 'post jobs'));
-        const unsub = onSnapshot(q, (snap) => {
+        const unsub = onSnapshot(q, async (snap) => {
             const list = [];
-            snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+            const instDataMap = {};
+            
+            for (const d of snap.docs) {
+                const jobData = { id: d.id, ...d.data() };
+                list.push(jobData);
+                
+                // Fetch institution data if institutionId exists
+                if (jobData.institutionId) {
+                    try {
+                        const instData = await getDataById('users', jobData.institutionId);
+                        if (instData) {
+                            instDataMap[jobData.institutionId] = instData;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching institution data:', error);
+                    }
+                }
+            }
+            
             setJobs(list);
+            setInstitutionData(prev => ({ ...prev, ...instDataMap }));
         }, () => setJobs([]));
         return () => unsub();
     }, []);
@@ -48,10 +69,29 @@ export default function App({ navigation }) {
     // Assumption: course-specific jobs are marked with jobType = "Course"
     useEffect(() => {
         const q = query(collection(db, 'post jobs'), where('jobType', '==', 'Course'));
-        const unsub = onSnapshot(q, (snap) => {
+        const unsub = onSnapshot(q, async (snap) => {
             const list = [];
-            snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+            const instDataMap = {};
+            
+            for (const d of snap.docs) {
+                const jobData = { id: d.id, ...d.data() };
+                list.push(jobData);
+                
+                // Fetch institution data if institutionId exists
+                if (jobData.institutionId) {
+                    try {
+                        const instData = await getDataById('users', jobData.institutionId);
+                        if (instData) {
+                            instDataMap[jobData.institutionId] = instData;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching institution data:', error);
+                    }
+                }
+            }
+            
             setPrivateJobs(list);
+            setInstitutionData(prev => ({ ...prev, ...instDataMap }));
         }, () => setPrivateJobs([]));
         return () => unsub();
     }, []);
@@ -178,65 +218,220 @@ export default function App({ navigation }) {
             </View>
 
             {/* Vertical Job List */}
-            <View style={{ marginVertical: 10, paddingHorizontal: 10 }}>
+            <View style={{ marginVertical: 10, paddingHorizontal: 15 }}>
                 {jobs.map((item) => (
                     <TouchableOpacity 
                         key={item.id} 
                         onPress={() => navigation.navigate('Jobdetails', { jobId: item.id })}
+                        activeOpacity={0.9}
                         style={{
-                            backgroundColor: "#d8b4e2",
-                            borderRadius: 10,
-                            padding: 15,
-                            marginBottom: 15,
+                            backgroundColor: "#fff",
+                            borderRadius: 16,
+                            padding: 18,
+                            marginBottom: 16,
                             shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
                             shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            elevation: 3,
-                            borderWidth: 2,
-                            borderColor: "purple"
+                            shadowRadius: 8,
+                            elevation: 4,
+                            borderWidth: 1,
+                            borderColor: "#e0e0e0"
                         }}>
-                        <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{item.jobTitle || 'Teaching Job'}</Text>
-                        {!!item.location && <Text>{item.location}</Text>}
-                        <View style={{ width: 5, height: 5, borderRadius: 10, marginLeft: 110 }}>
+                        {/* Header Row with Logo and Title */}
+                        <View style={{ flexDirection: "row", marginBottom: 12 }}>
+                            {/* Institution Logo */}
+                            <View style={{ 
+                                width: 60, 
+                                height: 60, 
+                                borderRadius: 12, 
+                                backgroundColor: "#f5f5f5",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginRight: 12,
+                                overflow: "hidden"
+                            }}>
+                                {institutionData[item.institutionId]?.profileImage || institutionData[item.institutionId]?.profilePicUrl ? (
                             <Image
-                                source={require("./School.jpeg")}
-                                style={{ width: 80, height: 80, borderRadius: 10, marginLeft: 100, marginTop: -25 }}
+                                        source={{ uri: institutionData[item.institutionId]?.profileImage || institutionData[item.institutionId]?.profilePicUrl }}
+                                        style={{ width: 60, height: 60, borderRadius: 12 }}
                             />
+                                ) : (
+                                    <Ionicons name="business" size={30} color="purple" />
+                                )}
                         </View>
 
-                        {!!item.createdAt && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <Ionicons name="time-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>{typeof item.createdAt === 'string' ? item.createdAt : 'Just now'}</Text>
+                            {/* Title and Institution */}
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ 
+                                    fontWeight: "bold", 
+                                    fontSize: 17, 
+                                    color: "#1a1a1a",
+                                    marginBottom: 4,
+                                    lineHeight: 22
+                                }}>
+                                    {item.jobTitle || 'Teaching Job'}
+                                </Text>
+                                <Text style={{ 
+                                    fontSize: 14, 
+                                    color: "purple",
+                                    fontWeight: "500"
+                                }}>
+                                    {institutionData[item.institutionId]?.institutionname || 'Institution'}
+                                </Text>
                             </View>
-                        )}
-                        {!!item.subject && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>Subject: {item.subject}</Text>
-                            </View>
-                        )}
-                        {!!item.salary && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>{item.salary}</Text>
-                            </View>
-                        )}
-                        {!!item.experience && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <MaterialCommunityIcons name="briefcase-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>Experience: {item.experience}</Text>
-                            </View>
-                        )}
+                        </View>
 
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+                        {/* Job Details Grid */}
+                        <View style={{ marginBottom: 12 }}>
+                            {!!item.subject && (
+                                <View style={{ 
+                                    flexDirection: "row", 
+                                    alignItems: "center", 
+                                    marginBottom: 8,
+                                    backgroundColor: "#f8f8f8",
+                                    paddingVertical: 6,
+                                    paddingHorizontal: 10,
+                                    borderRadius: 8
+                                }}>
+                                    <Ionicons name="book-outline" size={16} color="purple" style={{ marginRight: 8 }} />
+                                    <Text style={{ fontSize: 13, color: "#444", fontWeight: "500" }}>
+                                        {item.subject}
+                                    </Text>
+                            </View>
+                        )}
+                            
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                                {!!item.location && (
+                                    <View style={{ 
+                                        flexDirection: "row", 
+                                        alignItems: "center",
+                                        backgroundColor: "#f8f8f8",
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 10,
+                                        borderRadius: 8,
+                                        flex: 1,
+                                        minWidth: "45%"
+                                    }}>
+                                        <Ionicons name="location-outline" size={14} color="purple" style={{ marginRight: 6 }} />
+                                        <Text style={{ fontSize: 12, color: "#666", flex: 1 }} numberOfLines={1}>
+                                            {item.location}
+                                        </Text>
+                            </View>
+                        )}
+                                
+                        {!!item.salary && (
+                                    <View style={{ 
+                                        flexDirection: "row", 
+                                        alignItems: "center",
+                                        backgroundColor: "#f8f8f8",
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 10,
+                                        borderRadius: 8,
+                                        flex: 1,
+                                        minWidth: "45%"
+                                    }}>
+                                        <Ionicons name="cash-outline" size={14} color="purple" style={{ marginRight: 6 }} />
+                                        <Text style={{ fontSize: 12, color: "#666", fontWeight: "600" }}>
+                                            {item.salary}
+                                        </Text>
+                            </View>
+                        )}
+                            </View>
+                            
+                            {!!item.experience && (
+                                <View style={{ 
+                                    flexDirection: "row", 
+                                    alignItems: "center", 
+                                    marginTop: 8,
+                                    backgroundColor: "#f8f8f8",
+                                    paddingVertical: 6,
+                                    paddingHorizontal: 10,
+                                    borderRadius: 8
+                                }}>
+                                    <MaterialCommunityIcons name="briefcase-outline" size={14} color="purple" style={{ marginRight: 6 }} />
+                                    <Text style={{ fontSize: 12, color: "#666" }}>
+                                        Experience: {item.experience}
+                                    </Text>
+                            </View>
+                        )}
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={{ 
+                            flexDirection: "row", 
+                            justifyContent: "space-between", 
+                            marginTop: 8,
+                            gap: 10
+                        }}>
                             <TouchableOpacity 
-                                onPress={() => navigation.navigate("Jobdetails", { jobId: item.id })}
-                                style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}>
-                                <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Details</Text>
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    navigation.navigate("Jobdetails", { jobId: item.id });
+                                }}
+                                style={{ 
+                                    backgroundColor: "purple", 
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 20,
+                                    borderRadius: 10, 
+                                    flex: 1,
+                                    marginRight: 5,
+                                    shadowColor: "purple",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.2,
+                                    shadowRadius: 4,
+                                    elevation: 3,
+                                }}>
+                                <Text style={{ 
+                                    color: "#fff", 
+                                    textAlign: "center", 
+                                    fontSize: 14,
+                                    fontWeight: "600"
+                                }}>
+                                    View Details
+                                </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => navigation.navigate("Chat")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}>
-                                <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
+                            <TouchableOpacity 
+                                onPress={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        const auth = getAuth();
+                                        const currentUser = auth.currentUser;
+                                        
+                                        if (currentUser && item.institutionId) {
+                                            const conversationId = await getOrCreateConversation(currentUser.uid, item.institutionId);
+                                            const otherUser = await getDataById('users', item.institutionId);
+                                            navigation.navigate('ChatScreen', {
+                                                conversationId,
+                                                otherUser: {
+                                                    id: item.institutionId,
+                                                    name: otherUser?.institutionname || 'Institution',
+                                                    photoUrl: otherUser?.profileImage || null,
+                                                }
+                                            });
+                                        }
+                                    } catch (error) {
+                                        console.error('Error starting chat:', error);
+                                    }
+                                }}
+                                style={{ 
+                                    backgroundColor: "#fff", 
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 20,
+                                    borderRadius: 10, 
+                                    flex: 1,
+                                    marginLeft: 5,
+                                    borderWidth: 1.5,
+                                    borderColor: "purple"
+                                }}
+                            >
+                                <Text style={{ 
+                                    color: "purple", 
+                                    textAlign: "center", 
+                                    fontSize: 14,
+                                    fontWeight: "600"
+                                }}>
+                                    Chat
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
@@ -251,62 +446,234 @@ export default function App({ navigation }) {
 
                 {/* Private (Course) Jobs from Firestore */}
                 {privateJobs.map((item) => (
-                    <View key={item.id} style={{
-                        backgroundColor: "#d8b4e2",
-                        borderRadius: 10,
-                        padding: 15,
-                        marginBottom: 15,
+                    <TouchableOpacity 
+                        key={item.id} 
+                        onPress={() => navigation.navigate('Jobdetails', { jobId: item.id })}
+                        activeOpacity={0.9}
+                        style={{
+                            backgroundColor: "#fff",
+                            borderRadius: 16,
+                            padding: 18,
+                            marginBottom: 16,
                         shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
                         shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                        borderWidth: 2,
-                        borderColor: "purple"
-                    }}>
-                        <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 5 }}>{item.jobTitle || 'Course Tutor Required'}</Text>
-                        {!!item.location && <Text>{item.location}</Text>}
-                        <View style={{ width: 5, height: 5, borderRadius: 10, marginLeft: 110 }}>
+                            shadowRadius: 8,
+                            elevation: 4,
+                            borderWidth: 1,
+                            borderColor: "#e0e0e0"
+                        }}>
+                        {/* Header Row with Logo and Title */}
+                        <View style={{ flexDirection: "row", marginBottom: 12 }}>
+                            {/* Institution Logo */}
+                            <View style={{ 
+                                width: 60, 
+                                height: 60, 
+                                borderRadius: 12, 
+                                backgroundColor: "#f5f5f5",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginRight: 12,
+                                overflow: "hidden"
+                            }}>
+                                {institutionData[item.institutionId]?.profileImage || institutionData[item.institutionId]?.profilePicUrl ? (
                             <Image
-                                source={require("./School2.jpeg")}
-                                style={{ width: 80, height: 80, borderRadius: 10, marginLeft: 100, marginTop: -25 }}
+                                        source={{ uri: institutionData[item.institutionId]?.profileImage || institutionData[item.institutionId]?.profilePicUrl }}
+                                        style={{ width: 60, height: 60, borderRadius: 12 }}
                             />
+                                ) : (
+                                    <Ionicons name="business" size={30} color="purple" />
+                                )}
                         </View>
 
-                        {!!item.createdAt && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <Ionicons name="time-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>{typeof item.createdAt === 'string' ? item.createdAt : 'Just now'}</Text>
+                            {/* Title and Institution */}
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                                    <View style={{ 
+                                        backgroundColor: "#E8D5FF", 
+                                        paddingHorizontal: 8, 
+                                        paddingVertical: 3, 
+                                        borderRadius: 6,
+                                        marginRight: 8
+                                    }}>
+                                        <Text style={{ fontSize: 10, color: "purple", fontWeight: "600" }}>
+                                            COURSE
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Text style={{ 
+                                    fontWeight: "bold", 
+                                    fontSize: 17, 
+                                    color: "#1a1a1a",
+                                    marginBottom: 4,
+                                    lineHeight: 22
+                                }}>
+                                    {item.jobTitle || 'Course Tutor Required'}
+                                </Text>
+                                <Text style={{ 
+                                    fontSize: 14, 
+                                    color: "purple",
+                                    fontWeight: "500"
+                                }}>
+                                    {institutionData[item.institutionId]?.institutionname || 'Institution'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Job Details Grid */}
+                        <View style={{ marginBottom: 12 }}>
+                            {!!item.subject && (
+                                <View style={{ 
+                                    flexDirection: "row", 
+                                    alignItems: "center", 
+                                    marginBottom: 8,
+                                    backgroundColor: "#f8f8f8",
+                                    paddingVertical: 6,
+                                    paddingHorizontal: 10,
+                                    borderRadius: 8
+                                }}>
+                                    <Ionicons name="book-outline" size={16} color="purple" style={{ marginRight: 8 }} />
+                                    <Text style={{ fontSize: 13, color: "#444", fontWeight: "500" }}>
+                                        Course: {item.subject}
+                                    </Text>
                             </View>
                         )}
-                        {!!item.subject && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <Ionicons name="book-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>Course: {item.subject}</Text>
+                            
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                                {!!item.location && (
+                                    <View style={{ 
+                                        flexDirection: "row", 
+                                        alignItems: "center",
+                                        backgroundColor: "#f8f8f8",
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 10,
+                                        borderRadius: 8,
+                                        flex: 1,
+                                        minWidth: "45%"
+                                    }}>
+                                        <Ionicons name="location-outline" size={14} color="purple" style={{ marginRight: 6 }} />
+                                        <Text style={{ fontSize: 12, color: "#666", flex: 1 }} numberOfLines={1}>
+                                            {item.location}
+                                        </Text>
                             </View>
                         )}
+                                
                         {!!item.salary && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <Ionicons name="cash-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>{item.salary}</Text>
+                                    <View style={{ 
+                                        flexDirection: "row", 
+                                        alignItems: "center",
+                                        backgroundColor: "#f8f8f8",
+                                        paddingVertical: 6,
+                                        paddingHorizontal: 10,
+                                        borderRadius: 8,
+                                        flex: 1,
+                                        minWidth: "45%"
+                                    }}>
+                                        <Ionicons name="cash-outline" size={14} color="purple" style={{ marginRight: 6 }} />
+                                        <Text style={{ fontSize: 12, color: "#666", fontWeight: "600" }}>
+                                            {item.salary}
+                                        </Text>
                             </View>
                         )}
-                        {!!item.experience && (
-                            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 5 }}>
-                                <MaterialCommunityIcons name="briefcase-outline" size={18} color="black" style={{ marginRight: 6 }} />
-                                <Text>Experience: {item.experience}</Text>
+                            </View>
+                            
+                            {!!item.experience && (
+                                <View style={{ 
+                                    flexDirection: "row", 
+                                    alignItems: "center", 
+                                    marginTop: 8,
+                                    backgroundColor: "#f8f8f8",
+                                    paddingVertical: 6,
+                                    paddingHorizontal: 10,
+                                    borderRadius: 8
+                                }}>
+                                    <MaterialCommunityIcons name="briefcase-outline" size={14} color="purple" style={{ marginRight: 6 }} />
+                                    <Text style={{ fontSize: 12, color: "#666" }}>
+                                        Experience: {item.experience}
+                                    </Text>
                             </View>
                         )}
-
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
-                            <TouchableOpacity onPress={() => navigation.navigate("Jobdetails")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}>
-                                <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Details</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => navigation.navigate("Chat")} style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}>
-                                <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
-                            </TouchableOpacity>
                         </View>
 
-                    </View>
+                        {/* Action Buttons */}
+                        <View style={{ 
+                            flexDirection: "row", 
+                            justifyContent: "space-between", 
+                            marginTop: 8,
+                            gap: 10
+                        }}>
+                            <TouchableOpacity 
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    navigation.navigate("Jobdetails", { jobId: item.id });
+                                }}
+                                style={{ 
+                                    backgroundColor: "purple", 
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 20,
+                                    borderRadius: 10, 
+                                    flex: 1,
+                                    marginRight: 5,
+                                    shadowColor: "purple",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.2,
+                                    shadowRadius: 4,
+                                    elevation: 3,
+                                }}>
+                                <Text style={{ 
+                                    color: "#fff", 
+                                    textAlign: "center", 
+                                    fontSize: 14,
+                                    fontWeight: "600"
+                                }}>
+                                    View Details
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        const auth = getAuth();
+                                        const currentUser = auth.currentUser;
+                                        
+                                        if (currentUser && item.institutionId) {
+                                            const conversationId = await getOrCreateConversation(currentUser.uid, item.institutionId);
+                                            const otherUser = await getDataById('users', item.institutionId);
+                                            navigation.navigate('ChatScreen', {
+                                                conversationId,
+                                                otherUser: {
+                                                    id: item.institutionId,
+                                                    name: otherUser?.institutionname || 'Institution',
+                                                    photoUrl: otherUser?.profileImage || null,
+                                                }
+                                            });
+                                        }
+                                    } catch (error) {
+                                        console.error('Error starting chat:', error);
+                                    }
+                                }}
+                                style={{ 
+                                    backgroundColor: "#fff", 
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 20,
+                                    borderRadius: 10, 
+                                    flex: 1,
+                                    marginLeft: 5,
+                                    borderWidth: 1.5,
+                                    borderColor: "purple"
+                                }}
+                            >
+                                <Text style={{ 
+                                    color: "purple", 
+                                    textAlign: "center", 
+                                    fontSize: 14,
+                                    fontWeight: "600"
+                                }}>
+                                    Chat
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
                 ))}
             </View>
 

@@ -122,129 +122,366 @@ const JobDetail = ({ route, navigation }) => {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#f8f8f8" }}
-      contentContainerStyle={{ padding: 20 }}
+      style={{ flex: 1, backgroundColor: "#f5f5f5" }}
+      contentContainerStyle={{ paddingBottom: 30 }}
     >
-      {/* Job Image */}
-      {inst?.profileImage ? (
-        <Image
-          source={{ uri: inst.profileImage }}
-          style={{ width: "100%", height: 200, borderRadius: 15, marginBottom: 20 }}
-        />
-      ) : (
-        <Image
-          source={require("./School.jpeg")}
-          style={{ width: "100%", height: 200, borderRadius: 15, marginBottom: 20 }}
-        />
-      )}
-
-      {/* Title */}
-      <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 10 }}>
-        {job?.jobTitle || job?.jobVacancy || "Job Details"}
-      </Text>
-
-      {/*  Teacher Info */}
-      <Text style={{ fontSize: 18, fontWeight: "600" }}>{inst?.institutionname || ""}</Text>
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
-        <Ionicons name="briefcase-outline" size={18} color="#555" style={{ marginRight: 6 }} />
-        <Text style={{ fontSize: 14, color: "#555" }}>{inst?.type || "Institute"}</Text>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
-        <Ionicons name="location-outline" size={18} color="#555" style={{ marginRight: 6 }} />
-        <Text style={{ fontSize: 14, color: "#555" }}>
-          Location: {job?.location || inst?.address || ""}
-        </Text>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Ionicons name="calendar-outline" size={18} color="#555" style={{ marginRight: 6 }} />
-        <Text style={{ fontSize: 14, color: "#555" }}>
-          Established: {inst?.createdAt ? new Date(inst.createdAt).getFullYear() : ""}
-        </Text>
-      </View>
-
-      {/* Job Requirements */}
-      <View style={{
-        backgroundColor: "#d8b4e2",
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        borderWidth: 2,
-        borderColor: "purple"
-      }}>
-        <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
-          Requirements:
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
-          <Ionicons name="book-outline" size={18} color="#444" style={{ marginRight: 6 }} />
-          <Text style={{ fontSize: 14, color: "#444" }}>
-            Subject: {job?.subject || "N/A"}
-          </Text>
-        </View>
-
-        {/* Experience with Icon */}
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons name="briefcase-outline" size={18} color="#444" style={{ marginRight: 6 }} />
-          <Text style={{ fontSize: 14, color: "#444" }}>
-            Experience: {job?.experience || "N/A"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Description */}
-      <View style={{
-        backgroundColor: "#d8b4e2",
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        borderWidth: 2,
-        borderColor: "purple"
-      }}>
-        <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>
-          Job Description:
-        </Text>
-        <Text style={{ fontSize: 14, color: "#444", lineHeight: 20 }}>
-          {job?.description || ""}
-        </Text>
-      </View>
-
-      {/* Apply Button */}
-      <TouchableOpacity 
-        onPress={handleApply}
-        disabled={isApplying || hasApplied}
-        style={{
-          marginTop: 30,
-          backgroundColor: hasApplied ? '#888' : 'purple',
-          padding: 15,
-          borderRadius: 10,
-          alignItems: "center",
-          opacity: isApplying ? 0.7 : 1,
-        }}
-      >
-        {isApplying ? (
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Applying...</Text>
-        ) : hasApplied ? (
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-            {applicationStatus === 'Approved' ? 'Application Approved' : 
-             applicationStatus === 'Rejected' ? 'Application Rejected' : 
-             'Application Submitted'}
-          </Text>
+      {/* Header Section with Image */}
+      <View style={{ backgroundColor: "#fff", paddingBottom: 20 }}>
+        {inst?.profileImage || inst?.profilePicUrl ? (
+          <Image
+            source={{ uri: inst.profileImage || inst.profilePicUrl }}
+            style={{ width: "100%", height: 250, resizeMode: "cover" }}
+          />
         ) : (
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Apply Now</Text>
+          <View style={{ width: "100%", height: 250, backgroundColor: "purple", justifyContent: "center", alignItems: "center" }}>
+            <Ionicons name="business" size={80} color="#fff" />
+          </View>
         )}
-      </TouchableOpacity>
-      {hasApplied && applicationStatus === 'Pending' && (
-        <Text style={{ marginTop: 10, textAlign: 'center', color: '#555' }}>
-          Your application is under review. We'll notify you once there's an update.
-        </Text>
-      )}
+        
+        {/* Job Title Card */}
+        <View style={{ 
+          backgroundColor: "#fff", 
+          marginTop: -30, 
+          marginHorizontal: 20, 
+          borderRadius: 15, 
+          padding: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 5,
+        }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold", color: "#1a1a1a", marginBottom: 8 }}>
+            {job?.jobTitle || job?.jobVacancy || "Job Details"}
+          </Text>
+          <Text style={{ fontSize: 18, fontWeight: "600", color: "purple", marginBottom: 12 }}>
+            {inst?.institutionname || "Institution"}
+          </Text>
+          
+          {/* Quick Info Row */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {inst?.type && (
+              <View style={{ 
+                flexDirection: "row", 
+                alignItems: "center", 
+                backgroundColor: "#f0f0f0",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}>
+                <Ionicons name="briefcase-outline" size={16} color="purple" style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
+                  {inst.type.charAt(0).toUpperCase() + inst.type.slice(1)}
+                </Text>
+              </View>
+            )}
+            {(job?.location || inst?.address) && (
+              <View style={{ 
+                flexDirection: "row", 
+                alignItems: "center", 
+                backgroundColor: "#f0f0f0",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}>
+                <Ionicons name="location-outline" size={16} color="purple" style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
+                  {job?.location || inst?.address}
+                </Text>
+              </View>
+            )}
+            {job?.salary && (
+              <View style={{ 
+                flexDirection: "row", 
+                alignItems: "center", 
+                backgroundColor: "#f0f0f0",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}>
+                <Ionicons name="cash-outline" size={16} color="purple" style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
+                  {job.salary}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Job Details Section */}
+      <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        {/* Requirements Section */}
+        <View style={{
+          backgroundColor: "#fff",
+          borderRadius: 12,
+          padding: 20,
+          marginBottom: 15,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 3,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+            <View style={{ 
+              width: 40, 
+              height: 40, 
+              borderRadius: 20, 
+              backgroundColor: "purple", 
+              justifyContent: "center", 
+              alignItems: "center",
+              marginRight: 12,
+            }}>
+              <Ionicons name="document-text-outline" size={20} color="#fff" />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#1a1a1a" }}>
+              Job Requirements
+            </Text>
+          </View>
+          
+          {job?.subject && (
+            <View style={{ 
+              flexDirection: "row", 
+              alignItems: "center", 
+              marginBottom: 12,
+              paddingLeft: 52,
+            }}>
+              <Ionicons name="book-outline" size={20} color="purple" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: "#888", marginBottom: 2 }}>Subject</Text>
+                <Text style={{ fontSize: 15, color: "#1a1a1a", fontWeight: "500" }}>
+                  {job.subject}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {job?.experience && (
+            <View style={{ 
+              flexDirection: "row", 
+              alignItems: "center", 
+              marginBottom: 12,
+              paddingLeft: 52,
+            }}>
+              <Ionicons name="briefcase-outline" size={20} color="purple" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: "#888", marginBottom: 2 }}>Experience Required</Text>
+                <Text style={{ fontSize: 15, color: "#1a1a1a", fontWeight: "500" }}>
+                  {job.experience}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {job?.jobType && (
+            <View style={{ 
+              flexDirection: "row", 
+              alignItems: "center", 
+              paddingLeft: 52,
+            }}>
+              <Ionicons name="time-outline" size={20} color="purple" style={{ marginRight: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, color: "#888", marginBottom: 2 }}>Job Type / Timing</Text>
+                <Text style={{ fontSize: 15, color: "#1a1a1a", fontWeight: "500" }}>
+                  {job.jobType}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {job?.requirements && (
+            <View style={{ 
+              marginTop: 15,
+              paddingTop: 15,
+              borderTopWidth: 1,
+              borderTopColor: "#e0e0e0",
+            }}>
+              <Text style={{ fontSize: 13, color: "#888", marginBottom: 8, paddingLeft: 52 }}>Detailed Requirements</Text>
+              <Text style={{ fontSize: 14, color: "#444", lineHeight: 22, paddingLeft: 52 }}>
+                {job.requirements}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Description Section */}
+        {job?.description && (
+          <View style={{
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 15,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 3,
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: "purple", 
+                justifyContent: "center", 
+                alignItems: "center",
+                marginRight: 12,
+              }}>
+                <Ionicons name="information-circle-outline" size={20} color="#fff" />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: "bold", color: "#1a1a1a" }}>
+                Job Description
+              </Text>
+            </View>
+            <Text style={{ fontSize: 15, color: "#444", lineHeight: 24, paddingLeft: 52 }}>
+              {job.description}
+            </Text>
+          </View>
+        )}
+
+        {/* Institution Details */}
+        {inst && (
+          <View style={{
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 15,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 3,
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 20, 
+                backgroundColor: "purple", 
+                justifyContent: "center", 
+                alignItems: "center",
+                marginRight: 12,
+              }}>
+                <Ionicons name="business-outline" size={20} color="#fff" />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: "bold", color: "#1a1a1a" }}>
+                About Institution
+              </Text>
+            </View>
+            
+            {inst?.email && (
+              <View style={{ 
+                flexDirection: "row", 
+                alignItems: "center", 
+                marginBottom: 12,
+                paddingLeft: 52,
+              }}>
+                <Ionicons name="mail-outline" size={18} color="purple" style={{ marginRight: 10 }} />
+                <Text style={{ fontSize: 14, color: "#444" }}>{inst.email}</Text>
+              </View>
+            )}
+            
+            {inst?.phonenumber && (
+              <View style={{ 
+                flexDirection: "row", 
+                alignItems: "center", 
+                marginBottom: 12,
+                paddingLeft: 52,
+              }}>
+                <Ionicons name="call-outline" size={18} color="purple" style={{ marginRight: 10 }} />
+                <Text style={{ fontSize: 14, color: "#444" }}>{inst.phonenumber}</Text>
+              </View>
+            )}
+            
+            {inst?.address && (
+              <View style={{ 
+                flexDirection: "row", 
+                alignItems: "flex-start", 
+                paddingLeft: 52,
+              }}>
+                <Ionicons name="location-outline" size={18} color="purple" style={{ marginRight: 10, marginTop: 2 }} />
+                <Text style={{ fontSize: 14, color: "#444", flex: 1 }}>{inst.address}</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Apply Button Section */}
+      <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        <TouchableOpacity 
+          onPress={handleApply}
+          disabled={isApplying || hasApplied}
+          style={{
+            backgroundColor: hasApplied 
+              ? (applicationStatus === 'Approved' ? '#4CAF50' : applicationStatus === 'Rejected' ? '#F44336' : '#FF9800')
+              : 'purple',
+            paddingVertical: 18,
+            paddingHorizontal: 30,
+            borderRadius: 12,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: isApplying ? 0.7 : 1,
+            shadowColor: "purple",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: hasApplied ? 0 : 0.3,
+            shadowRadius: 8,
+            elevation: hasApplied ? 0 : 5,
+            flexDirection: "row",
+          }}
+        >
+          {isApplying ? (
+            <>
+              <Ionicons name="hourglass-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>Applying...</Text>
+            </>
+          ) : hasApplied ? (
+            <>
+              {applicationStatus === 'Approved' && (
+                <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              {applicationStatus === 'Rejected' && (
+                <Ionicons name="close-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              {applicationStatus === 'Pending' && (
+                <Ionicons name="time-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+              )}
+              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>
+                {applicationStatus === 'Approved' ? 'Application Approved' : 
+                 applicationStatus === 'Rejected' ? 'Application Rejected' : 
+                 'Application Submitted'}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="send-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>Apply Now</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        
+        {hasApplied && applicationStatus === 'Pending' && (
+          <View style={{
+            marginTop: 15,
+            backgroundColor: "#FFF3E0",
+            padding: 15,
+            borderRadius: 10,
+            borderLeftWidth: 4,
+            borderLeftColor: "#FF9800",
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 5 }}>
+              <Ionicons name="information-circle" size={18} color="#FF9800" style={{ marginRight: 8 }} />
+              <Text style={{ fontSize: 14, fontWeight: "600", color: "#E65100" }}>
+                Application Status
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, color: "#666", lineHeight: 18, paddingLeft: 26 }}>
+              Your application is under review. We'll notify you once there's an update.
+            </Text>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 };
