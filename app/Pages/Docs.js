@@ -104,7 +104,7 @@ const Docs = ({ navigation, route }) => {
       await addUserDetails(payload);
       dispatch(setRole("Teacher"));
       // user is already in Redux from Createprofile; keep it as is
-      alert("✅ Profile details saved successfully");
+      // alert("✅ Profile details saved successfully");
       navigation.navigate("Home1");
     } catch (e) {
       alert(e?.message || "Failed to save details");

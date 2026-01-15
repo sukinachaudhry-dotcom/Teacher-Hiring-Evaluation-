@@ -1,8 +1,57 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { forgotPassword } from "../Helper/firebaseHelper";
 
 const Password = ({ navigation }) => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleForgotPassword = async () => {
+    // Email validation
+    if (!email.trim()) {
+      Alert.alert("Error", "Please enter your email address");
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await forgotPassword(email.trim());
+      Alert.alert(
+        "Success",
+        "Password reset email has been sent to your email address. Please check your inbox and follow the instructions to reset your password.",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.navigate("Login")
+          }
+        ]
+      );
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      let errorMessage = "Failed to send password reset email. Please try again.";
+      
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "No account found with this email address.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Invalid email address. Please check and try again.";
+      } else if (error.code === "auth/too-many-requests") {
+        errorMessage = "Too many requests. Please try again later.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
@@ -68,17 +117,24 @@ const Password = ({ navigation }) => {
 
         {/* Send Verification Button */}
         <TouchableOpacity
+          onPress={handleForgotPassword}
+          disabled={loading}
           style={{
-            backgroundColor: "purple",
+            backgroundColor: loading ? "#ccc" : "purple",
             paddingVertical: 12,
             borderRadius: 25,
             alignItems: "center",
             marginBottom: 20,
+            opacity: loading ? 0.6 : 1,
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-            Send Verification Code
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+              Send Reset Link
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* Back to Login */}

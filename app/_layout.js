@@ -68,6 +68,7 @@ import TestList from './Pages/TestList';
 import TakeTest from './Pages/TakeTest';
 import TestResult from './Pages/TestResult';
 import ChatScreen from './Pages/ChatScreen';
+import { HeaderTitle } from "@react-navigation/elements";
 
 const Stack = createNativeStackNavigator();
 
@@ -87,10 +88,10 @@ const TeacherStack = () => (
     <Stack.Screen name="TuitionJobs" component={TuitionJobs} />
     <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
     <Stack.Screen name="Upload" component={Upload} />
-    <Stack.Screen name="Home1" component={Home1} />
+    <Stack.Screen screenOptions={{ headerTitle: (props) => <HeaderTitle {...props} title="Machinery Rental" /> }} name="Home1" component={Home1} />
     <Stack.Screen name="Jobdetails" component={Jobdetails} />
     <Stack.Screen name="Application" component={Application} />
-    <Stack.Screen name="BottomTab" component={BottomTab} />
+    <Stack.Screen options={{headerTitle:"Home"}}  screenOptions={{ headerTitle: (props) => <HeaderTitle {...props} title="Machinery Rental" /> }} name="BottomTab" component={BottomTab} />
     <Stack.Screen name="EditProfile" component={EditProfile} />
     <Stack.Screen name="EditDocs" component={EditDocs} />
     <Stack.Screen name="ForgotPass" component={ForgotPass} />

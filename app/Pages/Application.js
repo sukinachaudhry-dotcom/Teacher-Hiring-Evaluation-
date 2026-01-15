@@ -105,7 +105,7 @@ export default function MyApplicationsScreen({ navigation }) {
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5", padding: 15 }}>
       <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>
-        My Applications
+        {/* My Applications */}
       </Text>
       {loading ? (
         <View style={styles.loadingContainer}>
