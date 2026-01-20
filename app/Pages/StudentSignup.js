@@ -9,15 +9,15 @@ import { handleSignUp } from "../Helper/firebaseHelper";
 import { Dropdown } from "react-native-element-dropdown";
 
 const StudentSignup = ({ navigation }) => {
-  const [fullname, setFullname] = useState("Ahmed Ali");
-  const [email, setEmail] = useState("ahmed.student@gmail.com");
-  const [address, setAddress] = useState("Karachi, Pakistan");
-  const [password, setPassword] = useState("Student123");
-  const [phonenumber, setPhonenumber] = useState("+92-300-1234567");
-  const [selectclass, setSelectClass] = useState("class9-10");
-  const [subjects, setSubjects] = useState("math");
-  const [modeofteaching, setModeofteaching] = useState("online");
-  const [confirmpassword, setConfirmpassword] = useState("Student123");
+  const [fullname, setFullname] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [password, setPassword] = useState("");
+  const [phonenumber, setPhonenumber] = useState("");
+  const [selectclass, setSelectClass] = useState("");
+  const [subjects, setSubjects] = useState("");
+  const [modeofteaching, setModeofteaching] = useState("");
+  const [confirmpassword, setConfirmpassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const classData = [
