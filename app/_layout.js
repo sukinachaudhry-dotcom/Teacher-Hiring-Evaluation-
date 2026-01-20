@@ -67,7 +67,10 @@ import EditInstitutionProfile from './Pages/EditInstitutionProfile';
 import TestList from './Pages/TestList';
 import TakeTest from './Pages/TakeTest';
 import TestResult from './Pages/TestResult';
-import ChatScreen from './Pages/ChatScreen';
+import ChatScreen from './Pages/ChatScreen';      
+
+import Complains from './Pages/Complains';
+  
 import { HeaderTitle } from "@react-navigation/elements";
 
 const Stack = createNativeStackNavigator();
@@ -77,7 +80,7 @@ const TeacherStack = () => (
   <Stack.Navigator initialRouteName="BottomTab">
     <Stack.Screen name="Splash" component={Splash} />
     {/* <Stack.Screen name="Login" component={Login} />/ */}
-    <Stack.Screen name="Submitted" component={Submitted} />
+    <Stack.Screen name="Submitted" component={Submitted} /> 
     <Stack.Screen name="UniJobs" component={UniJobs} />
     <Stack.Screen name="PrivBrowse" component={PrivBrowse} />
     {/* <Stack.Screen name="Signup" component={Signup} /> */}
@@ -115,6 +118,7 @@ const TeacherStack = () => (
     <Stack.Screen name="TakeTest" component={TakeTest} options={{ title: 'Take Test' }} />
     <Stack.Screen name="TestResult" component={TestResult} options={{ headerShown: false }} />
     <Stack.Screen name="ChatScreen" component={ChatScreen} />
+    <Stack.Screen name="Complains" component={Complains}/>
   </Stack.Navigator>
 );
 
@@ -146,6 +150,7 @@ const StudentStack = () => (
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
     <Stack.Screen name="ChatScreen" component={ChatScreen} />
+    <Stack.Screen name="Complains" component={Complains}/>
   </Stack.Navigator>
 );
 
@@ -181,6 +186,7 @@ const InstitutionStack = () => (
     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy}/>
     <Stack.Screen name="TermAndConditions" component={TermAndConditions}/>
     <Stack.Screen name="ChatScreen" component={ChatScreen} />
+    <Stack.Screen name="Complains" component={Complains}/>
   </Stack.Navigator>
 );
 

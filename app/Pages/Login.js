@@ -8,8 +8,8 @@ import { setUser, setRole } from "../Redux/Slices/HomeDataSlice";
 
 
 const Login = ({ navigation }) => {
-  const [email, setEmail] = useState("john@gmail.com");
-  const [password, setPassword] = useState("Test@1122");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const dispatch = useDispatch();
   const handleLogin = async () => {
     // navigation.navigate("Bottom")

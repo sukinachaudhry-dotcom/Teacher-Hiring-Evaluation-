@@ -1,14 +1,14 @@
 import React from "react";
-import { View,ImageBackground, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons"; 
 const RoleScreen = ({ navigation }) => {
   return (
-       <ImageBackground
-            source={require("./bg.jpeg")} 
+       <View
             style={{
               flex: 1,
               justifyContent: "center",
               alignItems: "center",
+              backgroundColor: "#d8b4e2",
             }}
           >
       <Text
@@ -49,7 +49,7 @@ const RoleScreen = ({ navigation }) => {
         <Ionicons name="business" size={40} color="purple" />
         <Text style={styles.cardText}>I am an Institute</Text>
       </TouchableOpacity>
-      </ImageBackground>
+      </View>
    
   );
 };

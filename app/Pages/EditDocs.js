@@ -3,13 +3,15 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-nativ
 import { Dropdown } from "react-native-element-dropdown";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
+import * as ImagePicker from "expo-image-picker";
+import { uploadImageToCloudinary } from "../Helper/firebaseHelper";
 
 const EditDocs = ({ navigation, route }) => {
   const { formData, profileData } = route?.params || {};
   const [resume, setResume] = useState("");
-  const [certificates, setCertificates] = useState("");
+  const [certificates, setCertificates] = useState([]);
   const [availability, setAvailability] = useState(null);
   const availabilityData = [
     { label: "Morning (8am–12pm)", value: "morning" },
@@ -51,7 +53,9 @@ const EditDocs = ({ navigation, route }) => {
         if (data) {
           // Pre-fill form fields with existing data
           setResume(data.resume || "");
-          setCertificates(data.certificates || "");
+          // Handle certificates - can be string or array
+          const certData = data.certificates || "";
+          setCertificates(Array.isArray(certData) ? certData : (certData ? [certData] : []));
           setAvailability(data.availability || null);
           setLanguages(data.languageknown || data.languages || null);
           setBio(data.introduction || data.bio || data.description || "");
@@ -63,6 +67,74 @@ const EditDocs = ({ navigation, route }) => {
 
     loadProfileData();
   }, [profileData]);
+
+  const handlePickResume = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType,
+        allowsEditing: true,
+        quality: 1,
+      });
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        const uploadedUrl = await uploadImageToCloudinary(imageUri);
+        setResume(uploadedUrl);
+        alert("Resume uploaded");
+      }
+    } catch (err) {
+      alert("Failed to upload resume");
+    }
+  };
+
+  const handlePickCertificate = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaType,
+        allowsEditing: true,
+        quality: 1,
+      });
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        const uploadedUrl = await uploadImageToCloudinary(imageUri);
+        setCertificates(prev => [...prev, uploadedUrl]);
+        alert("Certificate uploaded");
+      }
+    } catch (err) {
+      alert("Failed to upload certificate");
+    }
+  };
+
+  const removeCertificate = (index) => {
+    setCertificates(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSave = async () => {
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser?.uid) {
+        alert("Error", "User not logged in");
+        return;
+      }
+
+      const userRef = doc(db, "users", currentUser.uid);
+      await updateDoc(userRef, {
+        resume,
+        certificates,
+        availability,
+        languageknown: languages,
+        introduction: bio,
+        updatedAt: new Date().toISOString(),
+      });
+
+      alert("Profile updated successfully!");
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile. Please try again.");
+    }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
@@ -91,60 +163,85 @@ const EditDocs = ({ navigation, route }) => {
         }}
       >
         {/* Resume Upload */}
-         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Resume / CV</Text>
-                <View style={{ flexDirection: "row", marginBottom: 15 }}>
-                  <TouchableOpacity
-                    onPress={() => console.log("Upload Document clicked")}
-                    style={{
-                      flex: 1,
-                      backgroundColor: "#d8b4e2",
-                      paddingHorizontal: 15,
-                      paddingVertical: 5,
-                      borderRadius: 20,
-                      marginRight: 5,
-                    }}
-                  >
-                    <Text style={{ color: "#fff", fontSize: 12 }}>Upload Document</Text>
-                  </TouchableOpacity>
-        
-                  <TouchableOpacity
-                    onPress={() => console.log("Generate AI Resume clicked")}
-                    style={{
-                      flex: 1,
-                      backgroundColor: "#a855f7",
-                      paddingHorizontal: 15,
-                      paddingVertical: 5,
-                      borderRadius: 20,
-                    }}
-                  >
-                    <Text style={{ color: "#fff", fontSize: 12, flexDirection: "row" }}>Generate AI Resume</Text>
-                  </TouchableOpacity>
-                </View>
+        <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Resume / CV</Text>
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderColor: "#ccc",
+          borderWidth: 1,
+          borderRadius: 8,
+          paddingHorizontal: 10,
+          marginBottom: 15,
+          height: 45,
+          backgroundColor: "#fff",
+          placeholderTextColor: "#999",
+        }}>
+          <Ionicons name="document-outline" size={20} color="purple" />
+          <TextInput
+            value={resume ? "Resume uploaded" : ""}
+            placeholder="No File Chosen"
+            placeholderTextColor="#999"
+            editable={false}
+            style={{ flex: 1, color: "#999", marginLeft: 8 }}
+          />
+          <TouchableOpacity onPress={handlePickResume} style={{ marginLeft: 8 }}>
+            <Ionicons name="cloud-upload-outline" size={22} color="purple" />
+          </TouchableOpacity>
+        </View>
 
-        {/* Certificates */}
-        <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Certificates</Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            borderColor: "#ccc",
-            borderWidth: 1,
-            borderRadius: 8,
-            paddingHorizontal: 10,
-            marginBottom: 15,
-            height: 45,
-            backgroundColor: "#fff",
-          }}
-        >
+        {/* Certificates - Job Related */}
+        <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Certificates (Job Related)</Text>
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderColor: "#ccc",
+          borderWidth: 1,
+          borderRadius: 8,
+          paddingHorizontal: 10,
+          marginBottom: 10,
+          height: 45,
+          backgroundColor: "#fff",
+          placeholderTextColor: "#999",
+        }}>
           <Ionicons name="medal-outline" size={20} color="purple" />
           <TextInput
-            value={certificates}
-            onChangeText={setCertificates}
-            placeholder="Certificate URL or filename"
+            value={certificates.length > 0 ? `${certificates.length} certificate(s) uploaded` : ""}
+            placeholder="No File Chosen"
             placeholderTextColor="#999"
-            style={{ flex: 1, color: "#333", marginLeft: 8 }}
+            editable={false}
+            style={{ flex: 1, color: "#999", marginLeft: 8 }}
           />
+          <TouchableOpacity onPress={handlePickCertificate} style={{ marginLeft: 8 }}>
+            <Ionicons name="cloud-upload-outline" size={22} color="purple" />
+          </TouchableOpacity>
         </View>
+
+        {/* Show uploaded certificates */}
+        {certificates.length > 0 && (
+          <View style={{ marginBottom: 15 }}>
+            {certificates.map((cert, index) => (
+              <View
+                key={index}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#f5f5f5",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <Ionicons name="document-text-outline" size={18} color="purple" />
+                <Text style={{ flex: 1, marginLeft: 8, color: "#333", fontSize: 12 }}>
+                  Certificate {index + 1}
+                </Text>
+                <TouchableOpacity onPress={() => removeCertificate(index)}>
+                  <Ionicons name="close-circle" size={20} color="#ff4444" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Availability */}
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Availability</Text>
@@ -230,10 +327,7 @@ const EditDocs = ({ navigation, route }) => {
 
         {/* Save Button */}
         <TouchableOpacity
-          onPress={() => {
-            alert("Profile saved successfully!");
-            navigation.navigate("Home1");
-          }}
+          onPress={handleSave}
           style={{
             backgroundColor: "purple",
             paddingVertical: 12,

@@ -43,17 +43,27 @@ const Settings = ({ navigation }) => {
             
             if (user) {
                 const userProfile = await getDataById("users", user.uid);
+                console.log("Fetched userProfile:", userProfile);
+                console.log("Redux user:", reduxUser);
+                
                 if (userProfile) {
-                    setUserData(userProfile);
+                    // Merge with Redux data to ensure we have all fields
+                    // Priority: userProfile (from database) > reduxUser
+                    const mergedData = { ...reduxUser, ...userProfile };
+                    console.log("Merged user data:", mergedData);
+                    setUserData(mergedData);
                 } else {
+                    console.log("No userProfile found, using reduxUser");
                     // Fallback to Redux user data
                     setUserData(reduxUser || {});
                 }
             } else {
+                console.log("No current user, using reduxUser");
                 setUserData(reduxUser || {});
             }
         } catch (error) {
             console.error("Error fetching user data:", error);
+            // Fallback to Redux user data on error
             setUserData(reduxUser || {});
         } finally {
             setLoading(false);
@@ -124,8 +134,27 @@ const Settings = ({ navigation }) => {
         );
     }
 
-    const displayName = userData?.name || userData?.fullname || userData?.institutionname || "User";
-    const displayEmail = userData?.email || "No email";
+    // Get display name - check multiple sources with better fallback
+    // Check all possible name fields in order of priority
+    const displayName = 
+      userData?.name || 
+      userData?.fullname || 
+      userData?.institutionname ||
+      userData?.firstName ||
+      userData?.lastName ||
+      (userData?.firstName && userData?.lastName ? `${userData.firstName} ${userData.lastName}` : null) ||
+      reduxUser?.name ||
+      reduxUser?.fullname ||
+      reduxUser?.institutionname ||
+      "User";
+    
+    const displayEmail = userData?.email || reduxUser?.email || "No email";
+    
+    // Debug logging
+    console.log("Display Name:", displayName);
+    console.log("UserData keys:", userData ? Object.keys(userData) : "No userData");
+    console.log("UserData.name:", userData?.name);
+    console.log("UserData.fullname:", userData?.fullname);
     // Check all possible profile picture field names used across different user types
     const profileImage = userData?.profilePicUrl || userData?.profileImage || userData?.photoUrl || userData?.photo || null;
 
@@ -195,6 +224,12 @@ const Settings = ({ navigation }) => {
                     </Text>
                     <Ionicons name="chevron-forward" size={18} color="gray"style={{ marginLeft: "auto" }}
                     />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate("Complains")} style={{ flexDirection: "row", alignItems: "center", padding: 15, }} >
+                    <Ionicons name="chatbubbles-outline" size={20} color="gray" />
+                    <Text style={{ marginLeft: 15, fontSize: 16, color: "#000" }}>Complains</Text>
+                    <Ionicons name="chevron-forward" size={18} color="gray" style={{ marginLeft: "auto" }} />
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => navigation.navigate("ChangePass")} style={{ flexDirection: "row", alignItems: "center", padding: 15, }} >

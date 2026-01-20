@@ -10,7 +10,7 @@ import { useDispatch } from "react-redux";
 const Docs = ({ navigation, route }) => {
   const dispatch = useDispatch();
   const [resume, setResume] = useState("");
-  const [certificates, setCertificates] = useState("");
+  const [certificates, setCertificates] = useState([]);
   const [availability, setAvailability] = useState(null);
   const [languageknown, setLanguageknown] = useState(null);
   const [introduction, setIntroduction] = useState("");
@@ -66,12 +66,16 @@ const Docs = ({ navigation, route }) => {
       if (!result.canceled) {
         const imageUri = result.assets[0].uri;
         const uploadedUrl = await uploadImageToCloudinary(imageUri);
-        setCertificates(uploadedUrl);
+        setCertificates(prev => [...prev, uploadedUrl]);
         alert("Certificate uploaded");
       }
     } catch (err) {
       alert("Failed to upload certificate");
     }
+  };
+
+  const removeCertificate = (index) => {
+    setCertificates(prev => prev.filter((_, i) => i !== index));
   };
 
   const compltSignUp = async () => {
@@ -132,38 +136,6 @@ const Docs = ({ navigation, route }) => {
       <View style={{ padding: 20, marginTop: -20, backgroundColor: "white", borderRadius: 50 }}>
         {/* Resume Upload */}
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Resume / CV</Text>
-        <View style={{ flexDirection: "row", marginBottom: 15 }}>
-          <TouchableOpacity
-            onPress={handlePickResume}
-            style={{
-              flex: 1,
-              backgroundColor: "#d8b4e2",
-              paddingHorizontal: 15,
-              paddingVertical: 5,
-              borderRadius: 20,
-              marginRight: 5,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 12 }}>Upload Document</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => console.log("Generate AI Resume clicked")}
-            style={{
-              flex: 1,
-              backgroundColor: "#a855f7",
-              paddingHorizontal: 15,
-              paddingVertical: 5,
-              borderRadius: 20,
-            }}
-          >
-            <Text onChangeText={(e) => setResume(e)} style={{ color: "#fff", fontSize: 12, flexDirection: "row" }}>Generate AI Resume</Text>
-          </TouchableOpacity>
-        </View>
-
-
-        {/* Certificates */}
-        <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Certificates</Text>
         <View style={{
           flexDirection: "row",
           alignItems: "center",
@@ -176,9 +148,36 @@ const Docs = ({ navigation, route }) => {
           backgroundColor: "#fff",
           placeholderTextColor: "#999",
         }}>
+          <Ionicons name="document-outline" size={20} color="purple" />
+          <TextInput
+            value={resume ? "Resume uploaded" : ""}
+            placeholder="No File Chosen"
+            placeholderTextColor="#999"
+            editable={false}
+            style={{ flex: 1, color: "#999", marginLeft: 8 }}
+          />
+          <TouchableOpacity onPress={handlePickResume} style={{ marginLeft: 8 }}>
+            <Ionicons name="cloud-upload-outline" size={22} color="purple" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Certificates - Job Related */}
+        <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Certificates (Job Related)</Text>
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderColor: "#ccc",
+          borderWidth: 1,
+          borderRadius: 8,
+          paddingHorizontal: 10,
+          marginBottom: 10,
+          height: 45,
+          backgroundColor: "#fff",
+          placeholderTextColor: "#999",
+        }}>
           <Ionicons name="medal-outline" size={20} color="purple" />
           <TextInput
-            value={certificates}
+            value={certificates.length > 0 ? `${certificates.length} certificate(s) uploaded` : ""}
             placeholder="No File Chosen"
             placeholderTextColor="#999"
             editable={false}
@@ -188,6 +187,33 @@ const Docs = ({ navigation, route }) => {
             <Ionicons name="cloud-upload-outline" size={22} color="purple" />
           </TouchableOpacity>
         </View>
+
+        {/* Show uploaded certificates */}
+        {certificates.length > 0 && (
+          <View style={{ marginBottom: 15 }}>
+            {certificates.map((cert, index) => (
+              <View
+                key={index}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#f5f5f5",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <Ionicons name="document-text-outline" size={18} color="purple" />
+                <Text style={{ flex: 1, marginLeft: 8, color: "#333", fontSize: 12 }}>
+                  Certificate {index + 1}
+                </Text>
+                <TouchableOpacity onPress={() => removeCertificate(index)}>
+                  <Ionicons name="close-circle" size={20} color="#ff4444" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Availability */}
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>Availability</Text>

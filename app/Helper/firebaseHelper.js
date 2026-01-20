@@ -194,7 +194,7 @@ export const uploadImageToCloudinary = async (imageUri) => {
 };
 
 
-// ✅ Save or update additional user details (uses addDoc)
+// ✅ Save or update additional user details (updates existing document)
 export async function addUserDetails(extraData = {}) {
   try {
     const authInstance = getAuth();
@@ -203,14 +203,18 @@ export async function addUserDetails(extraData = {}) {
       throw new Error("No authenticated user. Please sign in first.");
     }
 
+    // Remove password fields from extraData
+    const { password, confirmpassword, confirmPassword, confirm_password, ...safeData } = extraData;
+    
     const payload = {
-      uid,
-      ...extraData,
+      ...safeData,
       updatedAt: new Date().toISOString(),
     };
 
-    const docId = await addData("users", payload);
-    return { docId, uid };
+    // Update existing document instead of creating new one
+    await updateData("users", uid, payload);
+    console.log("User details updated successfully for uid:", uid);
+    return { uid };
   } catch (err) {
     console.error("addUserDetails error:", err);
     throw err;
