@@ -189,7 +189,7 @@ export default function Institutehome({ navigation }) {
             flex: 1,
             marginRight: 5,
           }}
-          onPress={() => navigation.navigate("Viewprofile")}
+          onPress={() => navigation.navigate("Viewprofile", { institutionId: teacher.id })}
         >
           <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>
             Detail
@@ -354,32 +354,6 @@ export default function Institutehome({ navigation }) {
         ) : (
           filteredTeachers.slice(0, 6).map((teacher, index) => (
             <TeacherCard key={teacher.id || index} teacher={teacher} />
-          ))
-        )}
-      </View>
-
-      {/* Recent Teachers */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginHorizontal: 10,
-          marginTop: 10,
-        }}
-      >
-        <Text style={{ fontSize: 16, fontWeight: "bold" }}>Recent Teachers</Text>
-        <Text onPress={() => navigation.navigate("Viewall")} style={{ color: "purple", fontWeight: "bold" }}>
-          View All
-        </Text>
-      </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", margin: 10 }}>
-        {filteredTeachers.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 10, width: '100%', color: '#666' }}>
-            {searchText.trim() ? 'No teachers found matching your search.' : 'No recent teachers yet.'}
-          </Text>
-        ) : (
-          filteredTeachers.slice(0, 6).map((teacher, index) => (
-            <TeacherCard key={(teacher.id ? `r_${teacher.id}` : `r_${index}`)} teacher={teacher} />
           ))
         )}
       </View>
