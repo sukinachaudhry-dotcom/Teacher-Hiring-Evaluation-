@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "../../firebase";
@@ -77,34 +78,88 @@ export default function Accept({ navigation, route }) {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#fff", padding: 10 }}>
-      <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 15 }}>
-        Request Accepted
-      </Text>
-
-      <View style={{ backgroundColor: "#d8b4e2", padding: 15, borderRadius: 10, marginBottom: 15 }}>
-        <Text style={{ fontWeight: "bold", fontSize: 16 }}>{studentName || "Student"}</Text>
-        <Text style={{ marginTop: 5 }}>Request has been accepted successfully!</Text>
-        <Text style={{ marginTop: 5, color: "#4CAF50", fontWeight: "bold" }}>
-          The student has been notified.
+    <ScrollView style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>
+          Request Accepted
         </Text>
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("NotificationScreen")}
-            style={{ backgroundColor: "purple", padding: 10, borderRadius: 20, flex: 1, marginRight: 5 }}
-          >
-            <Text style={{ color: "#fff", textAlign: "center" }}>Go to Notifications</Text>
-          </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+          <Ionicons name="checkmark-circle" size={18} color="#4CAF50" style={{ marginRight: 6 }} />
+          <Text style={styles.successText}>Request has been accepted successfully!</Text>
+        </View>
 
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+          <Ionicons name="person-outline" size={18} color="black" style={{ marginRight: 6 }} />
+          <Text style={styles.label}>Student: </Text>
+          <Text style={styles.value}>{studentName || "Student"}</Text>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+          <Ionicons name="notifications-outline" size={18} color="black" style={{ marginRight: 6 }} />
+          <Text style={styles.label}>The student has been notified.</Text>
+        </View>
+
+        <View style={{ marginTop: 15 }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("Home1")}
-            style={{ backgroundColor: "purple", padding: 10, borderRadius: 20, flex: 1, marginLeft: 5 }}
+            style={styles.button}
           >
-            <Text style={{ color: "#fff", textAlign: "center" }}>Go to Home</Text>
+            <Text style={styles.buttonText}>Go to Home</Text>
           </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    padding: 15,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  title: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  label: {
+    fontSize: 14,
+    color: "#555",
+    fontWeight: "600",
+  },
+  value: {
+    fontSize: 14,
+    color: "#555",
+  },
+  successText: {
+    fontSize: 14,
+    color: "#4CAF50",
+    fontWeight: "600",
+  },
+  button: {
+    backgroundColor: "purple",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+});

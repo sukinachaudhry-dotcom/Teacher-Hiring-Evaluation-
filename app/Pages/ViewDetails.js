@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { getDataById } from "../Helper/firebaseHelper";
@@ -89,36 +89,71 @@ export default function ViewDetails({ navigation, route }) {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#fff", padding: 10 }}>
-      <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 15 }}>
-        Hiring Request Details
-      </Text>
-
-      <View style={{ backgroundColor: "#d8b4e2", padding: 15, borderRadius: 10, marginBottom: 15 }}>
-        <Text style={{ fontWeight: "bold", fontSize: 16 }}>Student Information</Text>
-        <Text style={{ marginTop: 5 }}>Name: {requestData.studentName || studentData?.fullname || "N/A"}</Text>
-        {studentData?.email && (
-          <Text style={{ marginTop: 5 }}>Email: {studentData.email}</Text>
-        )}
-        {studentData?.phonenumber && (
-          <Text style={{ marginTop: 5 }}>Phone: {studentData.phonenumber}</Text>
-        )}
-        {studentData?.address && (
-          <Text style={{ marginTop: 5 }}>Address: {studentData.address}</Text>
-        )}
-        {studentData?.selectclass && (
-          <Text style={{ marginTop: 5 }}>Class: {studentData.selectclass}</Text>
-        )}
-        {studentData?.subjects && (
-          <Text style={{ marginTop: 5 }}>Subject: {studentData.subjects}</Text>
-        )}
-        <Text style={{ marginTop: 5 }}>Requested: {formatDate(requestData.createdAt)}</Text>
-        <Text style={{ marginTop: 5, fontWeight: "bold" }}>
-          Status: {requestData.status || "Pending"}
+    <ScrollView style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>
+          {requestData.studentName || studentData?.fullname || "Student"} - Hiring Request
         </Text>
 
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+          <Ionicons name="person-outline" size={18} color="black" style={{ marginRight: 6 }} />
+          <Text style={styles.label}>Name: </Text>
+          <Text style={styles.value}>{requestData.studentName || studentData?.fullname || "N/A"}</Text>
+        </View>
+
+        {studentData?.email && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+            <Ionicons name="mail-outline" size={18} color="black" style={{ marginRight: 6 }} />
+            <Text style={styles.label}>Email: </Text>
+            <Text style={styles.value}>{studentData.email}</Text>
+          </View>
+        )}
+
+        {studentData?.phonenumber && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+            <Ionicons name="call-outline" size={18} color="black" style={{ marginRight: 6 }} />
+            <Text style={styles.label}>Phone: </Text>
+            <Text style={styles.value}>{studentData.phonenumber}</Text>
+          </View>
+        )}
+
+        {studentData?.address && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+            <Ionicons name="location-outline" size={18} color="black" style={{ marginRight: 6 }} />
+            <Text style={styles.label}>Address: </Text>
+            <Text style={styles.value}>{studentData.address}</Text>
+          </View>
+        )}
+
+        {studentData?.selectclass && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+            <Ionicons name="school-outline" size={18} color="black" style={{ marginRight: 6 }} />
+            <Text style={styles.label}>Class: </Text>
+            <Text style={styles.value}>{studentData.selectclass}</Text>
+          </View>
+        )}
+
+        {studentData?.subjects && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+            <Ionicons name="book-outline" size={18} color="black" style={{ marginRight: 6 }} />
+            <Text style={styles.label}>Subject: </Text>
+            <Text style={styles.value}>{studentData.subjects}</Text>
+          </View>
+        )}
+
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+          <Ionicons name="time-outline" size={18} color="black" style={{ marginRight: 6 }} />
+          <Text style={styles.label}>Requested: </Text>
+          <Text style={styles.value}>{formatDate(requestData.createdAt)}</Text>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+          <MaterialCommunityIcons name="progress-clock" size={18} color="black" style={{ marginRight: 6 }} />
+          <Text style={styles.status}>Status: {requestData.status || "Pending"}</Text>
+        </View>
+
         {requestData.status === "pending" && (
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 15 }}>
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
               onPress={() => navigation.navigate("Accept", {
                 requestId: requestData.id,
@@ -126,9 +161,9 @@ export default function ViewDetails({ navigation, route }) {
                 studentName: requestData.studentName,
                 teacherId: requestData.teacherId,
               })}
-              style={{ backgroundColor: "#4CAF50", padding: 10, borderRadius: 20, flex: 1, marginRight: 5 }}
+              style={[styles.button, styles.acceptButton]}
             >
-              <Text style={{ color: "#fff", textAlign: "center", fontWeight: "bold" }}>Accept</Text>
+              <Text style={styles.buttonText}>Accept</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate("Reject", {
@@ -137,9 +172,9 @@ export default function ViewDetails({ navigation, route }) {
                 studentName: requestData.studentName,
                 teacherId: requestData.teacherId,
               })}
-              style={{ backgroundColor: "#F44336", padding: 10, borderRadius: 20, flex: 1, marginLeft: 5 }}
+              style={[styles.button, styles.rejectButton]}
             >
-              <Text style={{ color: "#fff", textAlign: "center", fontWeight: "bold" }}>Reject</Text>
+              <Text style={styles.buttonText}>Reject</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -147,3 +182,67 @@ export default function ViewDetails({ navigation, route }) {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    padding: 15,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  title: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  label: {
+    fontSize: 14,
+    color: "#555",
+    fontWeight: "600",
+  },
+  value: {
+    fontSize: 14,
+    color: "#555",
+  },
+  status: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "purple",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    marginTop: 15,
+    justifyContent: "space-between",
+  },
+  button: {
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  acceptButton: {
+    backgroundColor: "purple",
+    marginRight: 5,
+  },
+  rejectButton: {
+    backgroundColor: "purple",
+    marginLeft: 5,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+});

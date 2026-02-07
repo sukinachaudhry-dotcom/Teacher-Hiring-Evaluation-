@@ -84,7 +84,10 @@ const JobsScreen = ({navigation}) => {
               </TouchableOpacity>
               
               <TouchableOpacity
-                onPress={() => navigation.navigate("Applicants", { jobId: item.id })}
+                onPress={() => navigation.navigate("Applicants", {
+                  screen: "ApplicantsList",
+                  params: { jobId: item.id, jobTitle: item.jobTitle },
+                })}
                 style={{
                   backgroundColor: "#4CAF50",
                   paddingVertical: 8,

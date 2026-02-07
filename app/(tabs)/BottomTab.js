@@ -4,8 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeStack from './HomeStack';
 import Viewprofile from '../Pages/Viewprofile';
-import Browse from '../Pages/PrivBrowse';
 import MyApplicationsScreen from '../Pages/Application';
+import TeacherFeedback from '../Pages/TeacherFeedback';
 import ChatList from '../Pages/ChatList';
 import ChatScreen from '../Pages/ChatScreen';
 
@@ -27,11 +27,11 @@ export default function BottomTab() {
         <Tab.Navigator screenOptions={{
             headerShown:false 
         }} initialRouteName='Home'>
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} /> }} name="Home" component={HomeStack}/> 
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={Viewprofile} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="briefcase" size={24} color={color} /> }} name="Jobs" component={Browse} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} /> }} name="applications" component={MyApplicationsScreen} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="Chat" component={ChatStack} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />, tabBarLabel: 'Home' }} name="Home" component={HomeStack}/> 
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />, tabBarLabel: 'Profile' }} name="Profile" component={Viewprofile} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />, tabBarLabel: 'Applications' }} name="applications" component={MyApplicationsScreen} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="star" size={24} color={color} />, tabBarLabel: 'Feedback' }} name="Feedback" component={TeacherFeedback} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} />, tabBarLabel: 'Chat' }} name="Chat" component={ChatStack} />
 
 
 

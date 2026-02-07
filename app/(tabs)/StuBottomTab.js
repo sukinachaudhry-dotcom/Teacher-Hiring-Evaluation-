@@ -7,7 +7,7 @@ import InstJobs from '../Pages/InstJobs';
 import ChatList from '../Pages/ChatList';
 import ChatScreen from '../Pages/ChatScreen';
 import Studentviewprofile from '../Pages/Studentviewprofile';
-// import Favourite from '../Pages/Favourite';
+import StudentFeedback from '../Pages/StudentFeedback';
 import HirePage from '../Pages/Hirepage';
 
 const Tab = createBottomTabNavigator();
@@ -28,10 +28,11 @@ export default function StuBottomTab() {
         <Tab.Navigator screenOptions={{
             headerShown: false
         }} initialRouteName='Home'>
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} /> }} name="Home" component={StuHomeStack} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} /> }} name="Chat" component={ChatStack} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> }} name="Profile" component={Studentviewprofile} />
-            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="school-outline" size={24} color={color} /> }} name="My Teachers" component={HirePage} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />, tabBarLabel: 'Home' }} name="Home" component={StuHomeStack} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={24} color={color} />, tabBarLabel: 'Chat' }} name="Chat" component={ChatStack} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="star" size={24} color={color} />, tabBarLabel: 'Feedback' }} name="Feedback" component={StudentFeedback} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />, tabBarLabel: 'Profile' }} name="Profile" component={Studentviewprofile} />
+            <Tab.Screen options={{ tabBarIcon: ({ color }) => <Ionicons name="school-outline" size={24} color={color} />, tabBarLabel: 'My Teachers' }} name="My Teachers" component={HirePage} />
 
 
 

@@ -18,7 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSelector } from 'react-redux';
 
 export default function Applicants({ route }) {
-  const { jobId } = route.params || {};
+  const { jobId, jobTitle: jobTitleParam } = route.params || {};
   const [applicants, setApplicants] = useState([]);
   const [jobDetails, setJobDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,40 +48,84 @@ export default function Applicants({ route }) {
   }, [jobId]);
 
   const fetchApplicationsByJobId = async () => {
-    if (!jobId) {
-      console.warn('No jobId provided');
-      setApplicants([]);
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-    
     try {
       setLoading(true);
       const allApplications = [];
+      const institutionId = user?.uid || auth?.currentUser?.uid;
       
-      // 1. Fetch all applications for this specific jobId
+      if (!institutionId) {
+        console.warn('No institution ID found');
+        setApplicants([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      
       let applicationsSnapshot;
       let useManualSort = false;
-      try {
-        // Try with orderBy first
-        const applicationsQuery = query(
-          collection(db, 'applications'),
-          where('jobId', '==', jobId),
-          orderBy('updatedAt', 'desc')
+      
+      if (jobId) {
+        // Fetch applications for a specific job
+        try {
+          // Try with orderBy first
+          const applicationsQuery = query(
+            collection(db, 'applications'),
+            where('jobId', '==', jobId),
+            orderBy('updatedAt', 'desc')
+          );
+          applicationsSnapshot = await getDocs(applicationsQuery);
+          console.log('Applications fetched with orderBy:', applicationsSnapshot.docs.length);
+        } catch (error) {
+          // If orderBy fails (no index), use simple query and sort manually
+          console.warn('OrderBy failed, using simple query:', error.message);
+          useManualSort = true;
+          const applicationsQuery = query(
+            collection(db, 'applications'),
+            where('jobId', '==', jobId)
+          );
+          applicationsSnapshot = await getDocs(applicationsQuery);
+          console.log('Applications fetched without orderBy:', applicationsSnapshot.docs.length);
+        }
+      } else {
+        // Fetch all applications for all jobs of this institution
+        // First, get all job IDs for this institution
+        const jobsQuery = query(
+          collection(db, 'post jobs'),
+          where('institutionId', '==', institutionId)
         );
-        applicationsSnapshot = await getDocs(applicationsQuery);
-        console.log('Applications fetched with orderBy:', applicationsSnapshot.docs.length);
-      } catch (error) {
-        // If orderBy fails (no index), use simple query and sort manually
-        console.warn('OrderBy failed, using simple query:', error.message);
-        useManualSort = true;
-        const applicationsQuery = query(
-          collection(db, 'applications'),
-          where('jobId', '==', jobId)
-        );
-        applicationsSnapshot = await getDocs(applicationsQuery);
-        console.log('Applications fetched without orderBy:', applicationsSnapshot.docs.length);
+        const jobsSnapshot = await getDocs(jobsQuery);
+        const jobIds = jobsSnapshot.docs.map(doc => doc.id);
+        
+        if (jobIds.length === 0) {
+          console.log('No jobs found for this institution');
+          setApplicants([]);
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+        
+        // Fetch all applications for all these jobs
+        // Note: Firestore 'in' query supports up to 10 items, so we may need to batch
+        const batchSize = 10;
+        const allDocs = [];
+        
+        for (let i = 0; i < jobIds.length; i += batchSize) {
+          const batch = jobIds.slice(i, i + batchSize);
+          try {
+            const applicationsQuery = query(
+              collection(db, 'applications'),
+              where('jobId', 'in', batch)
+            );
+            const batchSnapshot = await getDocs(applicationsQuery);
+            allDocs.push(...batchSnapshot.docs);
+          } catch (error) {
+            console.error('Error fetching applications batch:', error);
+          }
+        }
+        
+        applicationsSnapshot = { docs: allDocs };
+        useManualSort = true; // Always sort manually when fetching multiple jobs
+        console.log('Applications fetched for all jobs:', allDocs.length);
       }
       
       console.log("Applications found:", applicationsSnapshot.docs.length);
@@ -96,9 +140,22 @@ export default function Applicants({ route }) {
         });
       }
       
-      // 2. For each application, fetch user data from users collection
+      // 2. For each application, fetch user data and job data from collections
       for (const appDoc of docsArray) {
         const appData = appDoc.data();
+        
+        // Fetch job details if not already fetched
+        let currentJobDetails = jobDetails;
+        if (!currentJobDetails && appData.jobId) {
+          try {
+            const jobDoc = await getDoc(doc(db, 'post jobs', appData.jobId));
+            if (jobDoc.exists()) {
+              currentJobDetails = { id: jobDoc.id, ...jobDoc.data() };
+            }
+          } catch (jobError) {
+            console.error('Error fetching job details:', jobError);
+          }
+        }
         
         // Fetch user data using userId from application document
         if (appData.userId) {
@@ -110,7 +167,7 @@ export default function Applicants({ route }) {
                 id: appDoc.id,
                 ...appData,
                 updatedAt: appData.updatedAt?.toDate?.() || new Date(),
-                jobTitle: appData.jobTitle || jobDetails?.jobTitle || 'Job Title',
+                jobTitle: appData.jobTitle || currentJobDetails?.jobTitle || 'Job Title',
                 jobId: appData.jobId || jobId,
                 applicantInfo: userData,
                 name: userData?.name || userData?.fullname || 'Unnamed',
@@ -145,21 +202,31 @@ export default function Applicants({ route }) {
   
   // Initial fetch
   useEffect(() => {
-    if (!jobId) {
-      console.warn('No jobId in route params');
+    const institutionId = user?.uid || auth?.currentUser?.uid;
+    
+    if (!institutionId) {
+      console.warn('No institution ID found');
       setLoading(false);
       return;
     }
     
-    console.log('Fetching applications for jobId:', jobId);
+    console.log('Fetching applications for jobId:', jobId || 'all jobs');
     fetchApplicationsByJobId();
     
-    // Set up real-time listener for applications of this specific job
+    // Set up real-time listener for applications
     try {
-      const applicationsQuery = query(
-        collection(db, 'applications'),
-        where('jobId', '==', jobId)
-      );
+      let applicationsQuery;
+      
+      if (jobId) {
+        // Listen to applications for a specific job
+        applicationsQuery = query(
+          collection(db, 'applications'),
+          where('jobId', '==', jobId)
+        );
+      } else {
+        // Listen to all applications (we'll filter by institution jobs in the callback)
+        applicationsQuery = query(collection(db, 'applications'));
+      }
       
       const unsubscribe = onSnapshot(
         applicationsQuery, 
@@ -181,7 +248,7 @@ export default function Applicants({ route }) {
       console.error('Error setting up listener:', error);
       setLoading(false);
     }
-  }, [jobId]);
+  }, [jobId, user?.uid]);
   
   const onRefresh = () => {
     setRefreshing(true);
@@ -264,7 +331,7 @@ export default function Applicants({ route }) {
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             <Text style={styles.headerTitle}>
-              {jobDetails?.jobTitle || 'Job Applications'}
+              {jobDetails?.jobTitle || jobTitleParam || 'Job Applications'}
             </Text>
             <Text style={styles.headerSubtitle}>
               {applicants.length} applicant{applicants.length !== 1 ? 's' : ''} found
@@ -402,17 +469,6 @@ const styles = StyleSheet.create({
   statusPending: {
     backgroundColor: '#FFF8E1',
     color: '#F57F17',
-  },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginLeft: 8,
-  },
-  btnText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
   },
   actionRow: {
     flexDirection: 'row',

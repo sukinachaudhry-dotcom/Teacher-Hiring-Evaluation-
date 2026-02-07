@@ -308,7 +308,7 @@ import { getAuth } from "firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { db } from "../../firebase";
-import { addData } from "../Helper/firebaseHelper";
+import { addData, getOrCreateConversation, getDataById } from "../Helper/firebaseHelper";
 
 const HirePage = () => {
   const [hiringRequests, setHiringRequests] = useState([]);
@@ -614,6 +614,42 @@ const HirePage = () => {
                     </Text>
                   </TouchableOpacity>
                 )}
+                {item.status?.toLowerCase() === "accepted" && (
+                  <TouchableOpacity
+                    style={styles.chatButton}
+                    onPress={async (e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      try {
+                        const currentUser = auth.currentUser;
+                        if (!currentUser) {
+                          Alert.alert("Error", "User not logged in");
+                          return;
+                        }
+                        if (!item.teacherId) {
+                          Alert.alert("Error", "Teacher ID is missing");
+                          return;
+                        }
+                        const conversationId = await getOrCreateConversation(currentUser.uid, item.teacherId);
+                        const otherUser = await getDataById('users', item.teacherId);
+                        navigation.navigate('ChatScreen', {
+                          conversationId,
+                          otherUser: {
+                            id: item.teacherId,
+                            name: otherUser?.name || otherUser?.fullname || 'Teacher',
+                            photoUrl: otherUser?.photoUrl || otherUser?.profileImage || null,
+                          }
+                        });
+                      } catch (error) {
+                        console.error('Error starting chat:', error);
+                        Alert.alert("Error", "Failed to start chat. Please try again.");
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.chatButtonText}>Chat</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </TouchableOpacity>
@@ -702,6 +738,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  chatButton: {
+    backgroundColor: "purple",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  chatButtonText: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "bold",

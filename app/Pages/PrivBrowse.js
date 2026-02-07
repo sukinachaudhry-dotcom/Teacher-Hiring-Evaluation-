@@ -7,50 +7,16 @@ import { db } from "../../firebase";
 export default function PrivateJobs({ navigation }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState("all"); // all | students | courses
 
   useEffect(() => {
-    // Stream students who created accounts to hire teachers
-    const studentsQ = query(
-      collection(db, "users"),
-      where("role", "==", "Student"),
-      where("profileCompleted", "==", true),
-      where("modeofteaching", "in", ["inperson", "online", "hybrid"]) 
-    );
-
     // Stream institution course-specific jobs (flag 'course' must be true)
     const courseJobsQ = query(
       collection(db, "institutionJobs"),
       where("course", "==", true)
     );
 
-    let studentList = [];
-    let courseList = [];
-
-    const unsub1 = onSnapshot(studentsQ, (snap) => {
-      studentList = [];
-      snap.forEach((d) => {
-        const s = d.data();
-        studentList.push({
-          id: `stu_${d.id}`,
-          source: "student",
-          title: s.subjects ? `${s.subjects} Tutor Needed` : "Home Tuition",
-          subtitle: s.address || "",
-          classLevel: s.selectclass || "",
-          salary: s.expectedFee || "",
-          mode: s.modeofteaching || "",
-        });
-      });
-      setItems([...courseList, ...studentList]);
-      setLoading(false);
-    }, () => {
-      studentList = [];
-      setItems([...courseList]);
-      setLoading(false);
-    });
-
-    const unsub2 = onSnapshot(courseJobsQ, (snap) => {
-      courseList = [];
+    const unsub = onSnapshot(courseJobsQ, (snap) => {
+      const courseList = [];
       snap.forEach((d) => {
         const j = d.data();
         courseList.push({
@@ -63,18 +29,14 @@ export default function PrivateJobs({ navigation }) {
           mode: j.mode || j.modeofteaching || "",
         });
       });
-      setItems([...courseList, ...studentList]);
+      setItems(courseList);
       setLoading(false);
     }, () => {
-      courseList = [];
-      setItems([...studentList]);
+      setItems([]);
       setLoading(false);
     });
 
-    return () => {
-      unsub1();
-      unsub2();
-    };
+    return () => unsub();
   }, []);
 
   return (
@@ -119,29 +81,15 @@ export default function PrivateJobs({ navigation }) {
         </View>
       </ScrollView> */}
 
-      {/* Mirror InstBrowse: chips bar */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
-        <View style={{ flexDirection: "row", paddingHorizontal: 10 }}>
-          <TouchableOpacity onPress={() => setTypeFilter("all")} style={{ backgroundColor: typeFilter === "all" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
-            <Text style={{ color: typeFilter === "all" ? "#fff" : "purple", fontWeight: "bold" }}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setTypeFilter("students")} style={{ backgroundColor: typeFilter === "students" ? "purple" : "#eee", padding: 10, borderRadius: 20, marginRight: 8 }}>
-            <Text style={{ color: typeFilter === "students" ? "#fff" : "purple", fontWeight: "bold" }}>Students</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setTypeFilter("courses")} style={{ backgroundColor: typeFilter === "courses" ? "purple" : "#eee", padding: 10, borderRadius: 20 }}>
-            <Text style={{ color: typeFilter === "courses" ? "#fff" : "purple", fontWeight: "bold" }}>Courses</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
 
       {/* Jobs List */}
       <View style={{ marginVertical: 10, paddingHorizontal: 10 }}>
         {loading ? (
           <Text style={{ textAlign: "center", marginTop: 20 }}>Loading...</Text>
-        ) : (items.filter(it => typeFilter === 'all' ? true : (typeFilter === 'students' ? it.source === 'student' : it.source === 'course'))).length === 0 ? (
+        ) : items.length === 0 ? (
           <Text style={{ textAlign: "center", marginTop: 20 }}>No private jobs yet.</Text>
         ) : (
-          items.filter(it => typeFilter === 'all' ? true : (typeFilter === 'students' ? it.source === 'student' : it.source === 'course')).map((it) => (
+          items.map((it) => (
             <View key={it.id} style={{
               backgroundColor: "#d8b4e2",
               borderRadius: 10,

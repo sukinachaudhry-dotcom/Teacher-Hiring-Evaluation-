@@ -14,25 +14,30 @@ const ApplicantDetails = () => {
     );
   }
 
+  const info = applicant.applicantInfo || {};
+  const displayName = applicant.name || info.displayName || info.name || info.fullname || 'No Name';
+  const email = info.email || applicant.email || '';
+  const photoUrl = applicant.photoUrl || info.photoURL || info.profileImage || info.profilePicUrl || info.photoUrl || null;
+  const appliedAtRaw = applicant.appliedAt;
+  const appliedAtDate = appliedAtRaw?.toDate ? appliedAtRaw.toDate() : (appliedAtRaw ? new Date(appliedAtRaw) : null);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {applicant.applicantInfo?.photoURL ? (
+        {photoUrl ? (
           <Image 
-            source={{ uri: applicant.applicantInfo.photoURL }} 
+            source={{ uri: photoUrl }} 
             style={styles.avatar}
           />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <Text style={styles.avatarText}>
-              {applicant.applicantInfo?.displayName?.[0]?.toUpperCase() || 'A'}
+              {displayName[0]?.toUpperCase() || 'A'}
             </Text>
           </View>
         )}
-        <Text style={styles.name}>
-          {applicant.applicantInfo?.displayName || 'No Name'}
-        </Text>
-        <Text style={styles.email}>{applicant.applicantInfo?.email}</Text>
+        <Text style={styles.name}>{displayName}</Text>
+        {email ? <Text style={styles.email}>{email}</Text> : null}
       </View>
 
       <View style={styles.section}>
@@ -40,7 +45,7 @@ const ApplicantDetails = () => {
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Applied On:</Text>
           <Text style={styles.detailValue}>
-            {new Date(applicant.appliedAt?.toDate()).toLocaleDateString()}
+            {appliedAtDate ? appliedAtDate.toLocaleDateString() : 'N/A'}
           </Text>
         </View>
         <View style={styles.detailRow}>
@@ -58,14 +63,42 @@ const ApplicantDetails = () => {
         </View>
       </View>
 
+      {(applicant.subject || applicant.experience || applicant.location) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile</Text>
+          {applicant.jobTitle ? (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Applied for:</Text>
+              <Text style={styles.detailValue}>{applicant.jobTitle}</Text>
+            </View>
+          ) : null}
+          {applicant.subject ? (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Subject:</Text>
+              <Text style={styles.detailValue}>{applicant.subject}</Text>
+            </View>
+          ) : null}
+          {applicant.experience ? (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Experience:</Text>
+              <Text style={styles.detailValue}>{applicant.experience}</Text>
+            </View>
+          ) : null}
+          {applicant.location ? (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Location:</Text>
+              <Text style={styles.detailValue}>{applicant.location}</Text>
+            </View>
+          ) : null}
+        </View>
+      )}
+
       {applicant.coverLetter && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cover Letter</Text>
           <Text style={styles.coverLetter}>{applicant.coverLetter}</Text>
         </View>
       )}
-
-      {/* Add more sections for resume, test results, etc. as needed */}
     </ScrollView>
   );
 };

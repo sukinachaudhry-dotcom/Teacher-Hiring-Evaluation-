@@ -8,11 +8,15 @@ import {
   ScrollView,
   SafeAreaView,
   Dimensions,
+  Alert,
+  StyleSheet,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Carousel from "react-native-reanimated-carousel";
-import { collection, onSnapshot, query, where, orderBy, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
+import { getAuth } from "firebase/auth";
+import { getOrCreateConversation, getDataById } from "../Helper/firebaseHelper";
 
 const { width } = Dimensions.get("window");
 
@@ -77,52 +81,26 @@ export default function Institutehome({ navigation }) {
   const [searchText, setSearchText] = React.useState('');
 
   React.useEffect(() => {
-    let userUnsubs = [];
     try {
-      const instUid = auth?.currentUser?.uid;
-      if (!instUid) return;
-
-      const appsQ = query(
-        collection(db, 'applications'),
-        where('institutionUid', '==', instUid),
-        orderBy('createdAt', 'desc')
+      // Show ALL teachers (real-time)
+      const teachersQ = query(
+        collection(db, 'users'),
+        where('role', '==', 'Teacher')
       );
-      const unsubApps = onSnapshot(appsQ, (snap) => {
-        // Unique teacher UIDs from applications
-        const uids = [];
-        snap.forEach((d) => {
-          const a = d.data();
-          if (a && a.teacherUid && !uids.includes(a.teacherUid)) uids.push(a.teacherUid);
-        });
 
-        // Clean previous listeners
-        userUnsubs.forEach((u) => u && u());
-        userUnsubs = [];
-
-        // Subscribe to first few teachers' profiles for real-time updates
-        const shown = uids.slice(0, 12);
-        const collected = {};
-
-        shown.forEach((uid) => {
-          const uUnsub = onSnapshot(doc(db, 'users', uid), (uSnap) => {
-            if (uSnap.exists()) {
-              collected[uid] = { id: uid, ...uSnap.data() };
-            } else {
-              delete collected[uid];
-            }
-            // Update array in a stable order based on apps order
-            const arr = shown.map((id) => collected[id]).filter(Boolean);
-            setTeachers(arr);
+      const unsubTeachers = onSnapshot(
+        teachersQ,
+        (snap) => {
+          const arr = [];
+          snap.forEach((d) => {
+            arr.push({ id: d.id, ...d.data() });
           });
-          userUnsubs.push(uUnsub);
-        });
-        if (shown.length === 0) setTeachers([]);
-      }, () => setTeachers([]));
+          setTeachers(arr);
+        },
+        () => setTeachers([])
+      );
 
-      return () => {
-        unsubApps && unsubApps();
-        userUnsubs.forEach((u) => u && u());
-      };
+      return () => unsubTeachers && unsubTeachers();
     } catch (e) {
       console.log('applicants subscribe error', e);
     }
@@ -147,16 +125,16 @@ export default function Institutehome({ navigation }) {
     <View
       style={{
         width: "48%",
-        backgroundColor: "#d8b4e2",
-        borderRadius: 10,
-        padding: 10,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 15,
         marginBottom: 15,
         shadowColor: "#000",
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
-        borderWidth: 2,
-        borderColor: "purple",
+        borderWidth: 1,
+        borderColor: "#e0e0e0",
       }}
     >
       <Image
@@ -203,7 +181,42 @@ export default function Institutehome({ navigation }) {
             flex: 1,
             marginLeft: 5,
           }}
-          onPress={() => navigation.navigate("Chat")}
+          onPress={async () => {
+            try {
+              const authInstance = getAuth();
+              const currentUser = authInstance.currentUser;
+
+              if (!currentUser?.uid) {
+                Alert.alert("Error", "Please login first to start chat.");
+                return;
+              }
+
+              if (!teacher?.id) {
+                Alert.alert("Error", "Teacher ID not found.");
+                return;
+              }
+
+              const conversationId = await getOrCreateConversation(currentUser.uid, teacher.id);
+              const otherUser = await getDataById("users", teacher.id);
+
+              if (!conversationId) {
+                Alert.alert("Error", "Unable to start chat. Please try again.");
+                return;
+              }
+
+              navigation.navigate("ChatScreen", {
+                conversationId,
+                otherUser: {
+                  id: teacher.id,
+                  name: otherUser?.name || otherUser?.fullname || "User",
+                  photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || otherUser?.photoUrl || null,
+                },
+              });
+            } catch (error) {
+              console.error("Error starting chat:", error);
+              Alert.alert("Error", "Chat open nahi ho rahi. Please try again.");
+            }
+          }}
         >
           <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>
             Chat
@@ -245,10 +258,7 @@ export default function Institutehome({ navigation }) {
             }}
           />
 
-          {/* Bell Icon */}
-          <TouchableOpacity onPress={() => navigation.navigate("NotificationScreen")}>
-            <Ionicons name="notifications" size={28} color='#fff' />
-          </TouchableOpacity>
+          
 
 
           <TouchableOpacity onPress={() => navigation.navigate("Settings")} >
@@ -279,19 +289,18 @@ export default function Institutehome({ navigation }) {
           Learning System
         </Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
           {categories.length === 0 ? (
-            // Show loading or empty state
-            <View style={{ padding: 20 }}>
-              <Text style={{ color: '#999' }}>Loading categories...</Text>
+            <View style={styles.categoriesEmpty}>
+              <Text style={styles.categoriesEmptyText}>Loading categories...</Text>
             </View>
           ) : (
-            // Display categories dynamically from Firestore
             categories.map((category) => (
               <TouchableOpacity
                 key={category.cid}
+                style={styles.categoryTouchable}
+                activeOpacity={0.7}
                 onPress={() => {
-                  // Navigate based on category title (case-insensitive)
                   const categoryTitle = (category.title || '').trim();
                   const pageMap = {
                     'computer': 'Computer',
@@ -300,29 +309,22 @@ export default function Institutehome({ navigation }) {
                     'maths': 'Maths',
                     'chemistry': 'Chemistry',
                     'courses': 'CoursesJobs',
-                    // Only include routes that exist in navigation stack
                   };
-                  
-                  // Get route name (case-insensitive lookup)
                   const routeName = pageMap[categoryTitle.toLowerCase()];
-                  
-                  // Only navigate if route exists in pageMap
                   if (routeName) {
                     navigation.navigate(routeName);
                   } else {
-                    // For categories without specific pages, navigate to Viewall
                     navigation.navigate('Viewall', { category: categoryTitle });
                   }
                 }}
               >
-            <View style={{ marginHorizontal: 10, alignItems: 'center' }}>
-              <View style={{ backgroundColor: '#d8b4e2', padding: 20, borderRadius: 10 }}>
-                    {/* Display icon from Firestore - using Ionicons */}
-                    <Ionicons name={category.icon} size={30} color="#000" />
-              </View>
-                  <Text style={{ marginTop: 5 }}>{category.title}</Text>
-            </View>
-          </TouchableOpacity>
+                <View style={styles.categoryItem}>
+                  <View style={styles.categoryBox}>
+                    <Ionicons name={category.icon || 'book-outline'} size={30} color="#000" />
+                  </View>
+                  <Text style={styles.categoryTitle}>{category.title || 'Category'}</Text>
+                </View>
+              </TouchableOpacity>
             ))
           )}
         </ScrollView>
@@ -352,7 +354,7 @@ export default function Institutehome({ navigation }) {
             {searchText.trim() ? 'No teachers found matching your search.' : 'No popular teachers yet.'}
           </Text>
         ) : (
-          filteredTeachers.slice(0, 6).map((teacher, index) => (
+          filteredTeachers.map((teacher, index) => (
             <TeacherCard key={teacher.id || index} teacher={teacher} />
           ))
         )}
@@ -385,3 +387,19 @@ export default function Institutehome({ navigation }) {
     </SafeAreaView >
   );
 }
+
+const styles = StyleSheet.create({
+  categoriesScroll: { marginVertical: 10 },
+  categoriesEmpty: { padding: 20 },
+  categoriesEmptyText: { color: '#999' },
+  categoryTouchable: {},
+  categoryItem: { marginHorizontal: 10, alignItems: 'center' },
+  categoryBox: {
+    backgroundColor: '#d8b4e2',
+    padding: 20,
+    borderRadius: 10,
+  },
+  categoryTitle: {
+    marginTop: 5,
+  },
+});

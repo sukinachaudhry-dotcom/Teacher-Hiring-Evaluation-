@@ -244,9 +244,7 @@ export default function App({ navigation }) {
                         }}
                     />
 
-                    <TouchableOpacity>
-                        <Ionicons name="notifications" size={28} color="#fff" />
-                    </TouchableOpacity>
+                   
 
                     <TouchableOpacity onPress={() => navigation.navigate("Settings")} >
                     <Ionicons name="settings" size={28} color='#fff' />
@@ -301,8 +299,10 @@ export default function App({ navigation }) {
                                         }}
                                     >
                                         <Image
-                                            source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+                                            key={`search-${teacher.id}-${teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl || 'default'}`}
+                                            source={(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? { uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) } : require("./Ali.jpeg")}
                                             style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+                                            resizeMode="cover"
                                         />
                                         <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
                                         <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
@@ -448,8 +448,10 @@ export default function App({ navigation }) {
                             }}
                         >
                             <Image
-                                source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+                                key={`popular-${teacher.id}-${teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl || 'default'}`}
+                                source={(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? { uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) } : require("./Ali.jpeg")}
                                 style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+                                resizeMode="cover"
                             />
                             <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
                             <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
@@ -529,8 +531,10 @@ export default function App({ navigation }) {
                             }}
                         >
                             <Image
-                                source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
+                                key={`recent-${teacher.id}-${teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl || 'default'}`}
+                                source={(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? { uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) } : require("./Ali.jpeg")}
                                 style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+                                resizeMode="cover"
                             />
                             <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
                             <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
