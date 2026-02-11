@@ -19,15 +19,23 @@ export default function MyApplicationsScreen({ navigation }) {
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        if (!userId) return;
+        console.log('Applications: Starting fetch, userId:', userId);
+        if (!userId) {
+          console.log('Applications: No userId found');
+          return;
+        }
 
         const applicationsRef = collection(db, 'applications');
         const q = query(applicationsRef, where('applicantId', '==', userId));
+        console.log('Applications: Query created:', q);
+        
         const querySnapshot = await getDocs(q);
+        console.log('Applications: Query result size:', querySnapshot.size);
 
         const apps = [];
         for (const doc of querySnapshot.docs) {
           const appData = { id: doc.id, ...doc.data() };
+          console.log('Applications: Processing application:', appData.id, appData.jobTitle);
 
           // Check if there's a test for this application
           if (appData.institutionId) {
@@ -50,9 +58,10 @@ export default function MyApplicationsScreen({ navigation }) {
           apps.push(appData);
         }
 
+        console.log('Applications: Total apps found:', apps.length);
         setApplications(apps);
       } catch (error) {
-        console.error('Error fetching applications:', error);
+        console.error('Applications: Error fetching applications:', error);
         Alert.alert('Error', 'Failed to load applications');
       } finally {
         setLoading(false);

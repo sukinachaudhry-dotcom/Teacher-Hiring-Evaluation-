@@ -189,9 +189,23 @@ export default function App({ navigation }) {
                     <TouchableOpacity 
                         onPress={() => {
                             // Navigate based on category title
-                            if (item.title === "Home Tuition") {
+                            const categoryTitle = item.title?.trim();
+                            console.log('Category clicked:', categoryTitle);
+                            
+                            if (categoryTitle === "Home Tuition") {
+                                console.log('Navigating to HomeTuitionJobs');
                                 navigation.navigate("HomeTuitionJobs");
+                            } else if (categoryTitle === "School/Colleges") {
+                                console.log('Navigating to SchoolCollegeJobs');
+                                navigation.navigate("SchoolCollegeJobs");
+                            } else if (categoryTitle === "courses" || categoryTitle === "Courses") {
+                                console.log('Navigating to CoursesJobs');
+                                navigation.navigate("CoursesJobs");
+                            } else if (categoryTitle === "All") {
+                                console.log('Navigating to AllJobs');
+                                navigation.navigate("AllJobs");
                             } else {
+                                console.log('Navigating to InstBrowse for category:', categoryTitle);
                                 // For other categories, keep existing navigation
                                 navigation.navigate("InstBrowse");
                             }

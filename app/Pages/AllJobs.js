@@ -10,131 +10,61 @@ import {
     RefreshControl,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { getDataById } from '../Helper/firebaseHelper';
 
-// Course-related job keywords - Technical, Academic, and Professional Courses
-const COURSE_KEYWORDS = [
-    // Technical Courses
-    'react', 'python', 'node', 'java', 'javascript', 'webdev', 'mobiledev', 'ml', 'ai', 
-    'machine learning', 'artificial intelligence', 'programming', 'coding', 'development', 
-    'software', 'computer', 'data science', 'web development', 'app development',
-    
-    // Academic Courses
-    'english', 'math', 'mathematics', 'science', 'physics', 'chemistry', 'biology', 
-    'history', 'geography', 'literature', 'grammar', 'writing', 'reading', 'speaking',
-    'calculus', 'algebra', 'statistics', 'engineering', 'medicine', 'law', 'business',
-    
-    // Professional Courses
-    'course', 'training', 'tutorial', 'class', 'lesson', 'teaching', 'tutor', 'instructor',
-    'education', 'academic', 'curriculum', 'subject', 'topic', 'skill', 'workshop',
-    'seminar', 'certification', 'diploma', 'degree', 'study', 'learn', 'coach'
-];
-
-console.log('CoursesJobs: Component loaded');
-
-export default function CoursesJobs({ navigation }) {
-    console.log('CoursesJobs: Component mounted');
-    
+export default function AllJobs({ navigation }) {
     const [search, setSearch] = useState("");
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [institutionData, setInstitutionData] = useState({});
 
-    // Fetch course-related jobs from Firestore
+    // Fetch all jobs from all categories
     useEffect(() => {
-        console.log('CoursesJobs: Starting useEffect');
-        
-        const fetchJobs = async () => {
+        const fetchAllJobs = async () => {
             try {
                 setLoading(true);
-                console.log('CoursesJobs: Querying jobs...');
                 
-                // Query all post jobs and filter for course-related ones
-                const q = collection(db, 'post jobs');
-                console.log('CoursesJobs: Query created:', q);
-
-                const unsub = onSnapshot(q, async (snap) => {
-                    console.log('CoursesJobs: Got snapshot with', snap.size, 'documents');
-                    
+                // Fetch all jobs from post jobs collection
+                const jobsQuery = collection(db, 'post jobs');
+                const jobsUnsub = onSnapshot(jobsQuery, async (snap) => {
                     const jobArray = [];
                     const instDataMap = {};
                     
                     for (const d of snap.docs) {
                         const jobData = { id: d.id, ...d.data() };
-                        console.log('CoursesJobs: Processing job:', jobData.id, jobData.jobTitle);
                         
-                        // Check if job is course-related - only explicit courses, not general teaching
-                        const jobTitle = (jobData.jobTitle || '').toLowerCase();
-                        const jobSubject = (jobData.subject || '').toLowerCase();
-                        const jobDescription = (jobData.description || '').toLowerCase();
-                        
-                        // Must explicitly mention "course" in title, subject, or description
-                        const isExplicitCourse = (
-                            jobTitle.includes('course') || 
-                            jobSubject.includes('course') || 
-                            jobDescription.includes('course') ||
-                            jobTitle.includes('training') ||
-                            jobSubject.includes('training') ||
-                            jobDescription.includes('training') ||
-                            jobTitle.includes('workshop') ||
-                            jobSubject.includes('workshop') ||
-                            jobDescription.includes('workshop')
-                        );
-                        
-                        // And must have a course subject keyword
-                        const hasCourseSubject = COURSE_KEYWORDS.some(keyword => 
-                            jobTitle.includes(keyword) || 
-                            jobSubject.includes(keyword) || 
-                            jobDescription.includes(keyword)
-                        );
-                        
-                        // Only show if it's explicitly a course AND has a course subject
-                        const isCourseRelated = isExplicitCourse && hasCourseSubject;
-                        
-                        if (isCourseRelated) {
-                            console.log('CoursesJobs: Found explicit course job:', jobData.id, jobData.jobTitle);
-                            
-                            // Fetch institution data
-                            if (jobData.institutionId) {
-                                try {
-                                    const instData = await getDataById('users', jobData.institutionId);
-                                    if (instData) {
-                                        console.log('CoursesJobs: Got institution data for', jobData.institutionId);
-                                        instDataMap[jobData.institutionId] = instData;
-                                        jobArray.push(jobData);
-                                    }
-                                } catch (error) {
-                                    console.error('CoursesJobs: Error fetching institution data:', error);
+                        // Fetch institution data
+                        if (jobData.institutionId) {
+                            try {
+                                const instData = await getDataById('users', jobData.institutionId);
+                                if (instData) {
+                                    instDataMap[jobData.institutionId] = instData;
                                 }
-                            } else {
-                                // Add job even without institution data
-                                jobArray.push(jobData);
+                            } catch (error) {
+                                console.error('Error fetching institution data:', error);
                             }
                         }
+                        jobArray.push(jobData);
                     }
                     
-                    console.log('CoursesJobs: Total course jobs found:', jobArray.length);
+                    console.log('AllJobs: Total jobs found:', jobArray.length);
                     setJobs(jobArray);
                     setInstitutionData(instDataMap);
-                    setLoading(false);
-                }, (error) => {
-                    console.error('CoursesJobs: Error fetching jobs:', error);
                     setLoading(false);
                 });
 
                 return () => {
-                    console.log('CoursesJobs: Cleaning up listener');
-                    unsub();
+                    jobsUnsub();
                 };
             } catch (e) {
-                console.error('CoursesJobs: Error setting up jobs query:', e);
+                console.error('Error fetching jobs:', e);
                 setLoading(false);
             }
         };
 
-        fetchJobs();
+        fetchAllJobs();
     }, []);
 
     // Filter jobs based on search
@@ -146,17 +76,12 @@ export default function CoursesJobs({ navigation }) {
     );
 
     const onRefresh = () => {
-        console.log('CoursesJobs: Refresh triggered');
+        // Refresh functionality
     };
 
+    // Job Card Component
     const JobCard = ({ job }) => (
         <TouchableOpacity 
-            key={job.id} 
-            onPress={() => {
-                console.log('CoursesJobs: Job card pressed, job ID:', job.id);
-                navigation.navigate('Jobdetails', { jobId: job.id });
-            }}
-            activeOpacity={0.9}
             style={{
                 backgroundColor: "#fff",
                 borderRadius: 16,
@@ -169,8 +94,12 @@ export default function CoursesJobs({ navigation }) {
                 elevation: 4,
                 borderWidth: 1,
                 borderColor: "#e0e0e0"
-            }}>
-            {/* Header Row with Logo and Title */}
+            }}
+            onPress={() => {
+                navigation.navigate('Jobdetails', { jobId: job.id });
+            }}
+        >
+            {/* Header */}
             <View style={{ flexDirection: "row", marginBottom: 12 }}>
                 {/* Institution Logo */}
                 <View style={{ 
@@ -184,10 +113,7 @@ export default function CoursesJobs({ navigation }) {
                     overflow: "hidden"
                 }}>
                     {institutionData[job.institutionId]?.profileImage || institutionData[job.institutionId]?.profilePicUrl ? (
-                        <Image
-                            source={{ uri: institutionData[job.institutionId]?.profileImage || institutionData[job.institutionId]?.profilePicUrl }}
-                            style={{ width: 60, height: 60, borderRadius: 12 }}
-                        />
+                        <Image source={{ uri: institutionData[job.institutionId]?.profileImage || institutionData[job.institutionId]?.profilePicUrl }} style={{ width: 60, height: 60, borderRadius: 12 }} />
                     ) : (
                         <Ionicons name="business" size={30} color="purple" />
                     )}
@@ -202,7 +128,7 @@ export default function CoursesJobs({ navigation }) {
                         marginBottom: 4,
                         lineHeight: 22
                     }}>
-                        {job.jobTitle || 'Course Job'}
+                        {job.jobTitle || 'Job'}
                     </Text>
                     <Text style={{ 
                         fontSize: 14, 
@@ -214,9 +140,9 @@ export default function CoursesJobs({ navigation }) {
                 </View>
             </View>
 
-            {/* Job Details Grid */}
+            {/* Job Details */}
             <View style={{ marginBottom: 12 }}>
-                {!!job.subject && (
+                {job.subject && (
                     <View style={{ 
                         flexDirection: "row", 
                         alignItems: "center", 
@@ -234,7 +160,7 @@ export default function CoursesJobs({ navigation }) {
                 )}
                 
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                    {!!job.location && (
+                    {job.location && (
                         <View style={{ 
                             flexDirection: "row", 
                             alignItems: "center",
@@ -252,7 +178,7 @@ export default function CoursesJobs({ navigation }) {
                         </View>
                     )}
 
-                    {!!job.salary && (
+                    {job.salary && (
                         <View style={{ 
                             flexDirection: "row", 
                             alignItems: "center",
@@ -271,7 +197,7 @@ export default function CoursesJobs({ navigation }) {
                     )}
                 </View>
 
-                {!!job.experience && (
+                {job.experience && (
                     <View style={{ 
                         flexDirection: "row", 
                         alignItems: "center", 
@@ -289,42 +215,29 @@ export default function CoursesJobs({ navigation }) {
                 )}
             </View>
 
-            {/* Action Buttons */}
-            <View style={{ 
-                flexDirection: "row", 
-                justifyContent: "space-between", 
-                marginTop: 8,
-                gap: 10
-            }}>
-                <TouchableOpacity 
-                    onPress={(e) => {
-                        e.stopPropagation();
-                        console.log('CoursesJobs: View Details pressed, job ID:', job.id);
-                        navigation.navigate("Jobdetails", { jobId: job.id });
-                    }}
-                    style={{ 
-                        backgroundColor: "purple", 
-                        paddingVertical: 12,
-                        paddingHorizontal: 20,
-                        borderRadius: 10, 
-                        flex: 1,
-                        marginRight: 5,
-                        shadowColor: "purple",
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 4,
-                        elevation: 3,
-                    }}>
-                    <Text style={{ 
-                        color: "#fff", 
-                        textAlign: "center", 
-                        fontSize: 14,
-                        fontWeight: "600"
-                    }}>
-                        View Details
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            {/* View Details Button */}
+            <TouchableOpacity 
+                style={{ 
+                    backgroundColor: "purple", 
+                    paddingVertical: 12,
+                    paddingHorizontal: 20,
+                    borderRadius: 10, 
+                    shadowColor: "purple",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 4,
+                    elevation: 3,
+                }}
+            >
+                <Text style={{ 
+                    color: "#fff", 
+                    textAlign: "center", 
+                    fontSize: 14,
+                    fontWeight: "600"
+                }}>
+                    View Details
+                </Text>
+            </TouchableOpacity>
         </TouchableOpacity>
     );
 
@@ -341,15 +254,12 @@ export default function CoursesJobs({ navigation }) {
                     justifyContent: 'space-between',
                 }}
             >
-                <TouchableOpacity onPress={() => {
-                    console.log('CoursesJobs: Back button pressed');
-                    navigation.goBack();
-                }}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={28} color='#fff' />
                 </TouchableOpacity>
 
                 <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-                    Course Jobs
+                    All Jobs
                 </Text>
 
                 <View style={{ width: 28 }} />
@@ -358,7 +268,7 @@ export default function CoursesJobs({ navigation }) {
             {/* Search Bar */}
             <View style={{ paddingHorizontal: 10, paddingVertical: 10 }}>
                 <TextInput
-                    placeholder="Search Course Jobs..."
+                    placeholder="Search All Jobs..."
                     placeholderTextColor="#999"
                     value={search}
                     onChangeText={setSearch}
@@ -376,7 +286,7 @@ export default function CoursesJobs({ navigation }) {
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="purple" />
-                    <Text style={{ marginTop: 10, color: '#666' }}>Loading Course Jobs...</Text>
+                    <Text style={{ marginTop: 10, color: '#666' }}>Loading All Jobs...</Text>
                 </View>
             ) : (
                 <ScrollView
@@ -388,7 +298,7 @@ export default function CoursesJobs({ navigation }) {
                     {filteredJobs.length > 0 ? (
                         <>
                             <Text style={{ fontSize: 16, fontWeight: 'bold', marginHorizontal: 5, marginVertical: 10 }}>
-                                {filteredJobs.length} Course Job{filteredJobs.length !== 1 ? 's' : ''} Found
+                                {filteredJobs.length} Jobs Found
                             </Text>
                             {filteredJobs.map((job) => (
                                 <JobCard key={job.id} job={job} />
@@ -396,9 +306,9 @@ export default function CoursesJobs({ navigation }) {
                         </>
                     ) : (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 }}>
-                            <Ionicons name="school-outline" size={60} color="#ccc" />
+                            <Ionicons name="briefcase-outline" size={60} color="#ccc" />
                             <Text style={{ marginTop: 20, fontSize: 16, color: '#666', textAlign: 'center' }}>
-                                {search ? 'No course jobs found matching your search' : 'No course jobs available at the moment'}
+                                {search ? 'No jobs found matching your search' : 'No jobs available at the moment'}
                             </Text>
                         </View>
                     )}

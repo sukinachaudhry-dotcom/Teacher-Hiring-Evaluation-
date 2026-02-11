@@ -9,6 +9,9 @@ import Browse from '../Pages/PrivBrowse';
 import Viewprofile from '../Pages/Viewprofile';
 import HomeTuitionJobs from '../Pages/HomeTuitionJobs';
 import Studentviewprofile from '../Pages/Studentviewprofile';
+import SchoolCollegeJobs from '../Pages/SchoolCollegeJobs';
+import CoursesJobs from '../Pages/CoursesJobs';
+import AllJobs from '../Pages/AllJobs';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +29,9 @@ const HomeStack = () => {
         <Stack.Screen name="ChatScreen" component={ChatScreen} />
         <Stack.Screen name="HomeTuitionJobs" component={HomeTuitionJobs} />
         <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
+        <Stack.Screen name="SchoolCollegeJobs" component={SchoolCollegeJobs} />
+        <Stack.Screen name="CoursesJobs" component={CoursesJobs} />
+        <Stack.Screen name="AllJobs" component={AllJobs} />
     
 
       </Stack.Navigator>

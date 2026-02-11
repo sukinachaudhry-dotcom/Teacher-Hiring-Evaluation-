@@ -14,123 +14,67 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { getDataById } from '../Helper/firebaseHelper';
 
-// Course-related job keywords - Technical, Academic, and Professional Courses
-const COURSE_KEYWORDS = [
-    // Technical Courses
-    'react', 'python', 'node', 'java', 'javascript', 'webdev', 'mobiledev', 'ml', 'ai', 
-    'machine learning', 'artificial intelligence', 'programming', 'coding', 'development', 
-    'software', 'computer', 'data science', 'web development', 'app development',
-    
-    // Academic Courses
-    'english', 'math', 'mathematics', 'science', 'physics', 'chemistry', 'biology', 
-    'history', 'geography', 'literature', 'grammar', 'writing', 'reading', 'speaking',
-    'calculus', 'algebra', 'statistics', 'engineering', 'medicine', 'law', 'business',
-    
-    // Professional Courses
-    'course', 'training', 'tutorial', 'class', 'lesson', 'teaching', 'tutor', 'instructor',
-    'education', 'academic', 'curriculum', 'subject', 'topic', 'skill', 'workshop',
-    'seminar', 'certification', 'diploma', 'degree', 'study', 'learn', 'coach'
-];
-
-console.log('CoursesJobs: Component loaded');
-
-export default function CoursesJobs({ navigation }) {
-    console.log('CoursesJobs: Component mounted');
-    
-    const [search, setSearch] = useState("");
+export default function SchoolCollegeJobs({ navigation }) {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [search, setSearch] = useState('');
     const [institutionData, setInstitutionData] = useState({});
 
-    // Fetch course-related jobs from Firestore
+    // Fetch all jobs (simplified)
     useEffect(() => {
-        console.log('CoursesJobs: Starting useEffect');
+        console.log('SchoolCollegeJobs: Starting to fetch jobs...');
         
         const fetchJobs = async () => {
             try {
                 setLoading(true);
-                console.log('CoursesJobs: Querying jobs...');
                 
-                // Query all post jobs and filter for course-related ones
+                // Query all post jobs
                 const q = collection(db, 'post jobs');
-                console.log('CoursesJobs: Query created:', q);
-
+                
                 const unsub = onSnapshot(q, async (snap) => {
-                    console.log('CoursesJobs: Got snapshot with', snap.size, 'documents');
-                    
-                    const jobArray = [];
+                    console.log('SchoolCollegeJobs: Got snapshot with', snap.size, 'documents');
+                    const list = [];
                     const instDataMap = {};
                     
                     for (const d of snap.docs) {
                         const jobData = { id: d.id, ...d.data() };
-                        console.log('CoursesJobs: Processing job:', jobData.id, jobData.jobTitle);
+                        console.log('SchoolCollegeJobs: Processing job', jobData.id);
                         
-                        // Check if job is course-related - only explicit courses, not general teaching
-                        const jobTitle = (jobData.jobTitle || '').toLowerCase();
-                        const jobSubject = (jobData.subject || '').toLowerCase();
-                        const jobDescription = (jobData.description || '').toLowerCase();
-                        
-                        // Must explicitly mention "course" in title, subject, or description
-                        const isExplicitCourse = (
-                            jobTitle.includes('course') || 
-                            jobSubject.includes('course') || 
-                            jobDescription.includes('course') ||
-                            jobTitle.includes('training') ||
-                            jobSubject.includes('training') ||
-                            jobDescription.includes('training') ||
-                            jobTitle.includes('workshop') ||
-                            jobSubject.includes('workshop') ||
-                            jobDescription.includes('workshop')
-                        );
-                        
-                        // And must have a course subject keyword
-                        const hasCourseSubject = COURSE_KEYWORDS.some(keyword => 
-                            jobTitle.includes(keyword) || 
-                            jobSubject.includes(keyword) || 
-                            jobDescription.includes(keyword)
-                        );
-                        
-                        // Only show if it's explicitly a course AND has a course subject
-                        const isCourseRelated = isExplicitCourse && hasCourseSubject;
-                        
-                        if (isCourseRelated) {
-                            console.log('CoursesJobs: Found explicit course job:', jobData.id, jobData.jobTitle);
-                            
-                            // Fetch institution data
-                            if (jobData.institutionId) {
-                                try {
-                                    const instData = await getDataById('users', jobData.institutionId);
-                                    if (instData) {
-                                        console.log('CoursesJobs: Got institution data for', jobData.institutionId);
-                                        instDataMap[jobData.institutionId] = instData;
-                                        jobArray.push(jobData);
-                                    }
-                                } catch (error) {
-                                    console.error('CoursesJobs: Error fetching institution data:', error);
+                        // Fetch institution data
+                        if (jobData.institutionId) {
+                            try {
+                                const instData = await getDataById('users', jobData.institutionId);
+                                if (instData) {
+                                    console.log('SchoolCollegeJobs: Got institution data for', jobData.institutionId);
+                                    instDataMap[jobData.institutionId] = instData;
+                                    list.push(jobData);
                                 }
-                            } else {
-                                // Add job even without institution data
-                                jobArray.push(jobData);
+                            } catch (error) {
+                                console.error('SchoolCollegeJobs: Error fetching institution data:', error);
                             }
                         }
                     }
                     
-                    console.log('CoursesJobs: Total course jobs found:', jobArray.length);
-                    setJobs(jobArray);
+                    console.log('SchoolCollegeJobs: Total jobs found:', list.length);
+                    setJobs(list);
                     setInstitutionData(instDataMap);
                     setLoading(false);
+                    setRefreshing(false);
                 }, (error) => {
-                    console.error('CoursesJobs: Error fetching jobs:', error);
+                    console.error('SchoolCollegeJobs: Error fetching jobs:', error);
                     setLoading(false);
+                    setRefreshing(false);
                 });
 
                 return () => {
-                    console.log('CoursesJobs: Cleaning up listener');
+                    console.log('SchoolCollegeJobs: Cleaning up listener');
                     unsub();
                 };
             } catch (e) {
-                console.error('CoursesJobs: Error setting up jobs query:', e);
+                console.error('SchoolCollegeJobs: Error setting up query:', e);
                 setLoading(false);
+                setRefreshing(false);
             }
         };
 
@@ -138,22 +82,26 @@ export default function CoursesJobs({ navigation }) {
     }, []);
 
     // Filter jobs based on search
-    const filteredJobs = jobs.filter((job) =>
-        job.jobTitle?.toLowerCase().includes(search.toLowerCase()) ||
-        job.subject?.toLowerCase().includes(search.toLowerCase()) ||
-        job.location?.toLowerCase().includes(search.toLowerCase()) ||
-        institutionData[job.institutionId]?.institutionname?.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredJobs = jobs.filter(job => {
+        const searchLower = search.toLowerCase();
+        return (
+            job.jobTitle?.toLowerCase().includes(searchLower) ||
+            job.subject?.toLowerCase().includes(searchLower) ||
+            job.location?.toLowerCase().includes(searchLower) ||
+            institutionData[job.institutionId]?.institutionname?.toLowerCase().includes(searchLower)
+        );
+    });
 
     const onRefresh = () => {
-        console.log('CoursesJobs: Refresh triggered');
+        console.log('SchoolCollegeJobs: Refreshing...');
+        setRefreshing(true);
     };
 
     const JobCard = ({ job }) => (
         <TouchableOpacity 
             key={job.id} 
             onPress={() => {
-                console.log('CoursesJobs: Job card pressed, job ID:', job.id);
+                console.log('SchoolCollegeJobs: Job card pressed, job ID:', job.id);
                 navigation.navigate('Jobdetails', { jobId: job.id });
             }}
             activeOpacity={0.9}
@@ -202,7 +150,7 @@ export default function CoursesJobs({ navigation }) {
                         marginBottom: 4,
                         lineHeight: 22
                     }}>
-                        {job.jobTitle || 'Course Job'}
+                        {job.jobTitle || 'Teaching Job'}
                     </Text>
                     <Text style={{ 
                         fontSize: 14, 
@@ -299,7 +247,7 @@ export default function CoursesJobs({ navigation }) {
                 <TouchableOpacity 
                     onPress={(e) => {
                         e.stopPropagation();
-                        console.log('CoursesJobs: View Details pressed, job ID:', job.id);
+                        console.log('SchoolCollegeJobs: View Details pressed, job ID:', job.id);
                         navigation.navigate("Jobdetails", { jobId: job.id });
                     }}
                     style={{ 
@@ -342,14 +290,14 @@ export default function CoursesJobs({ navigation }) {
                 }}
             >
                 <TouchableOpacity onPress={() => {
-                    console.log('CoursesJobs: Back button pressed');
+                    console.log('SchoolCollegeJobs: Back button pressed');
                     navigation.goBack();
                 }}>
                     <Ionicons name="arrow-back" size={28} color='#fff' />
                 </TouchableOpacity>
 
                 <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-                    Course Jobs
+                    School & College Jobs
                 </Text>
 
                 <View style={{ width: 28 }} />
@@ -358,7 +306,7 @@ export default function CoursesJobs({ navigation }) {
             {/* Search Bar */}
             <View style={{ paddingHorizontal: 10, paddingVertical: 10 }}>
                 <TextInput
-                    placeholder="Search Course Jobs..."
+                    placeholder="Search School/College Jobs..."
                     placeholderTextColor="#999"
                     value={search}
                     onChangeText={setSearch}
@@ -376,19 +324,19 @@ export default function CoursesJobs({ navigation }) {
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="purple" />
-                    <Text style={{ marginTop: 10, color: '#666' }}>Loading Course Jobs...</Text>
+                    <Text style={{ marginTop: 10, color: '#666' }}>Loading School/College Jobs...</Text>
                 </View>
             ) : (
                 <ScrollView
                     style={{ flex: 1, paddingHorizontal: 10 }}
                     refreshControl={
-                        <RefreshControl refreshing={false} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
                 >
                     {filteredJobs.length > 0 ? (
                         <>
                             <Text style={{ fontSize: 16, fontWeight: 'bold', marginHorizontal: 5, marginVertical: 10 }}>
-                                {filteredJobs.length} Course Job{filteredJobs.length !== 1 ? 's' : ''} Found
+                                {filteredJobs.length} School/College Job{filteredJobs.length !== 1 ? 's' : ''} Found
                             </Text>
                             {filteredJobs.map((job) => (
                                 <JobCard key={job.id} job={job} />
@@ -396,9 +344,9 @@ export default function CoursesJobs({ navigation }) {
                         </>
                     ) : (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 }}>
-                            <Ionicons name="school-outline" size={60} color="#ccc" />
+                            <Ionicons name="business-outline" size={60} color="#ccc" />
                             <Text style={{ marginTop: 20, fontSize: 16, color: '#666', textAlign: 'center' }}>
-                                {search ? 'No course jobs found matching your search' : 'No course jobs available at the moment'}
+                                {search ? 'No school/college jobs found matching your search' : 'No school/college jobs available at the moment'}
                             </Text>
                         </View>
                     )}
