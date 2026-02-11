@@ -4,7 +4,7 @@ import { View, Text, ImageBackground, TouchableOpacity } from "react-native";
 const SplashScreen = ({ navigation }) => {
   return (
     <ImageBackground
-      source={require("./splash.jpeg")} 
+      source={require("./Sp.jpeg")} 
       style={{
         flex: 1,
         justifyContent: "center",

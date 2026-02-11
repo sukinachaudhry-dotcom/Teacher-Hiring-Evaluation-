@@ -206,7 +206,7 @@ const RenderStack = () => {
     default:
       return (
         <Stack.Navigator initialRouteName="Login">
-          {/* <Stack.Screen name="Signup" component={Signup} /> */}
+          {/* <Stack.Screen name="Splash" component={Splash} /> */}
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Role" component={Role} />
           <Stack.Screen name="Createprofile" component={Createprofile} />

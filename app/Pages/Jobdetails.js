@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 
 const JobDetail = ({ route, navigation }) => {
   const jobId = route?.params?.jobId;
+  const isHomeTuition = route?.params?.isHomeTuition || false;
   const [job, setJob] = useState(null);
   const [inst, setInst] = useState(null);
   const [isApplying, setIsApplying] = useState(false);
@@ -43,18 +44,37 @@ const JobDetail = ({ route, navigation }) => {
     const load = async () => {
       try {
         if (!jobId) return;
-        const jref = doc(db, "post jobs", jobId);
-        const jsnap = await getDoc(jref);
-        if (jsnap.exists()) {
-          const jdata = { id: jsnap.id, ...jsnap.data() };
-          setJob(jdata);
-          if (jdata.institutionId) {
-            const iref = doc(db, "users", jdata.institutionId);
-            const isnap = await getDoc(iref);
-            if (isnap.exists()) setInst(isnap.data());
+        
+        if (isHomeTuition) {
+          // Load from hiring requests collection for home tuition jobs
+          const jref = doc(db, "hiring requests", jobId);
+          const jsnap = await getDoc(jref);
+          if (jsnap.exists()) {
+            const jdata = { id: jsnap.id, ...jsnap.data() };
+            setJob(jdata);
+            if (jdata.studentId) {
+              const iref = doc(db, "users", jdata.studentId);
+              const isnap = await getDoc(iref);
+              if (isnap.exists()) setInst(isnap.data());
+            }
+            // Check if user has already applied
+            await checkIfApplied();
           }
-          // Check if user has already applied
-          await checkIfApplied();
+        } else {
+          // Load from post jobs collection for institution jobs
+          const jref = doc(db, "post jobs", jobId);
+          const jsnap = await getDoc(jref);
+          if (jsnap.exists()) {
+            const jdata = { id: jsnap.id, ...jsnap.data() };
+            setJob(jdata);
+            if (jdata.institutionId) {
+              const iref = doc(db, "users", jdata.institutionId);
+              const isnap = await getDoc(iref);
+              if (isnap.exists()) setInst(isnap.data());
+            }
+            // Check if user has already applied
+            await checkIfApplied();
+          }
         }
       } catch (error) {
         console.error('Error loading job details:', error);
@@ -62,7 +82,7 @@ const JobDetail = ({ route, navigation }) => {
       }
     };
     load();
-  }, [jobId]);
+  }, [jobId, isHomeTuition]);
 
   const handleApply = async () => {
     try {
@@ -80,37 +100,56 @@ const JobDetail = ({ route, navigation }) => {
 
       setIsApplying(true);
       
-      // Create a new application document
-      const applicationRef = doc(collection(db, 'applications'));
-      const applicationData = {
-        id: applicationRef.id,
-        jobId: jobId,
-        jobTitle: job.jobTitle || job.jobVacancy,
-        institutionId: job.institutionId,
-        institutionName: inst?.institutionname || '',
-        applicantId: user.uid,
-        userId: user.uid,
-        status: 'Pending',
-        appliedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        jobLocation: job.location || '',
-        jobType: job.jobType || 'Full-time',
-        salary: job.salary || 'Negotiable'
-      };
+      if (isHomeTuition) {
+        // For home tuition, update the hiring request status
+        const hiringRequestRef = doc(db, "hiring requests", jobId);
+        await setDoc(hiringRequestRef, {
+          status: 'Applied',
+          teacherId: user.uid,
+          teacherName: user.fullname || user.name || 'Teacher',
+          teacherPhoto: user.profileImage || user.profilePicUrl || null,
+          appliedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        
+        setHasApplied(true);
+        setApplicationStatus('Applied');
+        
+        Alert.alert('Application Successful', 'Your application has been submitted successfully!');
+        navigation.goBack();
+      } else {
+        // For institution jobs, create a new application document
+        const applicationRef = doc(collection(db, 'applications'));
+        const applicationData = {
+          id: applicationRef.id,
+          jobId: jobId,
+          jobTitle: job.jobTitle || job.jobVacancy,
+          institutionId: job.institutionId,
+          institutionName: inst?.institutionname || '',
+          applicantId: user.uid,
+          userId: user.uid,
+          status: 'Pending',
+          appliedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          jobLocation: job.location || '',
+          jobType: job.jobType || 'Full-time',
+          salary: job.salary || 'Negotiable'
+        };
 
-      await setDoc(applicationRef, applicationData);
+        await setDoc(applicationRef, applicationData);
 
-      setHasApplied(true);
-      setApplicationStatus('Pending');
-      
-      // Navigate to Submitted screen with application data
-      navigation.navigate('Submitted', {
-        applicationId: applicationRef.id,
-        jobTitle: applicationData.jobTitle,
-        institutionName: applicationData.institutionName,
-        appliedDate: new Date().toLocaleDateString(),
-        status: 'Pending'
-      });
+        setHasApplied(true);
+        setApplicationStatus('Pending');
+        
+        // Navigate to Submitted screen with application data
+        navigation.navigate('Submitted', {
+          applicationId: applicationRef.id,
+          jobTitle: applicationData.jobTitle,
+          institutionName: applicationData.institutionName,
+          appliedDate: new Date().toLocaleDateString(),
+          status: 'Pending'
+        });
+      }
       
     } catch (error) {
       console.error('Error applying for job:', error);
@@ -134,7 +173,7 @@ const JobDetail = ({ route, navigation }) => {
         />
       ) : (
           <View style={{ width: "100%", height: 250, backgroundColor: "purple", justifyContent: "center", alignItems: "center" }}>
-            <Ionicons name="business" size={80} color="#fff" />
+            <Ionicons name={isHomeTuition ? "person" : "business"} size={80} color="#fff" />
           </View>
         )}
         
@@ -155,25 +194,45 @@ const JobDetail = ({ route, navigation }) => {
         {job?.jobTitle || job?.jobVacancy || "Job Details"}
       </Text>
           <Text style={{ fontSize: 18, fontWeight: "600", color: "purple", marginBottom: 12 }}>
-            {inst?.institutionname || "Institution"}
+            {isHomeTuition ? (job?.studentName || "Student") : (inst?.institutionname || "Institution")}
           </Text>
           
           {/* Quick Info Row */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            {inst?.type && (
-              <View style={{ 
-                flexDirection: "row", 
-                alignItems: "center", 
-                backgroundColor: "#f0f0f0",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 20,
-              }}>
-                <Ionicons name="briefcase-outline" size={16} color="purple" style={{ marginRight: 6 }} />
-                <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
-                  {inst.type.charAt(0).toUpperCase() + inst.type.slice(1)}
-                </Text>
-      </View>
+            {isHomeTuition ? (
+              <>
+                <View style={{ 
+                  flexDirection: "row", 
+                  alignItems: "center", 
+                  backgroundColor: "#f0f0f0",
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                }}>
+                  <Ionicons name="home-outline" size={16} color="purple" style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
+                    Home Tuition
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                {inst?.type && (
+                  <View style={{ 
+                    flexDirection: "row", 
+                    alignItems: "center", 
+                    backgroundColor: "#f0f0f0",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                  }}>
+                    <Ionicons name="briefcase-outline" size={16} color="purple" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 13, color: "#555", fontWeight: "500" }}>
+                      {inst.type.charAt(0).toUpperCase() + inst.type.slice(1)}
+                    </Text>
+          </View>
+                )}
+              </>
             )}
             {(job?.location || inst?.address) && (
               <View style={{ 

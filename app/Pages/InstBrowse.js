@@ -100,16 +100,17 @@ export default function InstBrowse({ navigation }) {
         ) : (
           jobs.map((job) => (
             <View key={job.id} style={{
-              backgroundColor: "#d8b4e2",
-              borderRadius: 10,
-              padding: 15,
-              marginBottom: 15,
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-              borderWidth: 2,
-              borderColor: "purple"
+               backgroundColor: "#fff",
+                            borderRadius: 16,
+                            padding: 18,
+                            marginBottom: 16,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 8,
+                            elevation: 4,
+                            borderWidth: 1,
+                            borderColor: "#e0e0e0"
             }}>
               <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 8, color: "#000" }}>
                 {job.title || "Teaching Job"}

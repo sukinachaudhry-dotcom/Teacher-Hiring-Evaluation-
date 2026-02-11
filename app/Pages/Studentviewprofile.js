@@ -24,17 +24,26 @@ export default function StudentProfileView({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [hasRequested, setHasRequested] = useState(false);
+  const [requestStatus, setRequestStatus] = useState(null); // pending, accepted, rejected
   
-  // Get teacherId from route params if viewing a teacher profile
-  const teacherId = route?.params?.teacherId;
+  // Get studentId from route params when viewing student profile from Home Tuition
+  const studentId = route?.params?.studentId;
+  const teacherId = route?.params?.teacherId; // Keep for backward compatibility
 
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       
-      // If teacherId is provided, fetch teacher's profile, otherwise fetch student's own profile
-      if (teacherId) {
-        // Fetch teacher profile
+      // If studentId is provided (from Home Tuition), fetch student profile
+      if (studentId) {
+        const data = await getDataById("users", studentId);
+        if (data) {
+          setProfileData(data);
+        } else {
+          Alert.alert("Error", "Student profile not found");
+        }
+      } else if (teacherId) {
+        // Fetch teacher profile (backward compatibility)
         const data = await getDataById("users", teacherId);
         if (data) {
           setProfileData(data);
@@ -42,7 +51,7 @@ export default function StudentProfileView({ navigation, route }) {
           Alert.alert("Error", "Teacher profile not found");
         }
       } else {
-        // Use Redux user data for student's own profile
+        // Use Redux user data for own profile
         if (reduxUser && Object.keys(reduxUser).length > 0) {
           setProfileData(reduxUser);
         } else {
@@ -70,31 +79,52 @@ export default function StudentProfileView({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  }, [teacherId]);
+  }, [studentId, teacherId]);
 
-  // Check if student has already sent a hiring request
+  // Check if teacher has already sent a hiring request to student
   const checkExistingRequest = useCallback(async () => {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      if (!user || !teacherId) return;
+      if (!user) return;
 
-      const requestsQuery = query(
-        collection(db, "hiring requests"),
-        where("studentId", "==", user.uid),
-        where("teacherId", "==", teacherId)
-      );
+      // If viewing student profile (from Home Tuition), check if teacher has sent request
+      if (studentId) {
+        const requestsQuery = query(
+          collection(db, "hiring requests"),
+          where("studentId", "==", studentId),
+          where("teacherId", "==", user.uid)
+        );
 
-      const querySnapshot = await getDocs(requestsQuery);
-      if (!querySnapshot.empty) {
-        setHasRequested(true);
-      } else {
-        setHasRequested(false);
+        const querySnapshot = await getDocs(requestsQuery);
+        if (!querySnapshot.empty) {
+          const request = querySnapshot.docs[0].data();
+          setHasRequested(true);
+          setRequestStatus(request.status || 'pending');
+        } else {
+          setHasRequested(false);
+          setRequestStatus(null);
+        }
+      }
+      // If viewing teacher profile (backward compatibility), check if student has sent request
+      else if (teacherId) {
+        const requestsQuery = query(
+          collection(db, "hiring requests"),
+          where("studentId", "==", user.uid),
+          where("teacherId", "==", teacherId)
+        );
+
+        const querySnapshot = await getDocs(requestsQuery);
+        if (!querySnapshot.empty) {
+          setHasRequested(true);
+        } else {
+          setHasRequested(false);
+        }
       }
     } catch (error) {
       console.error("Error checking existing request:", error);
     }
-  }, [teacherId]);
+  }, [studentId, teacherId]);
 
   // Handle sending hiring request
   const handleSendHiringRequest = async () => {
@@ -107,59 +137,110 @@ export default function StudentProfileView({ navigation, route }) {
         return;
       }
 
-      if (!teacherId || !profileData) {
-        Alert.alert("Error", "Teacher information not available");
-        return;
+      // If viewing student profile (from Home Tuition), teacher sends request to student
+      if (studentId && profileData) {
+        // Check if request already exists
+        if (hasRequested) {
+          Alert.alert("Already Sent", "You have already sent a hiring request to this student");
+          return;
+        }
+
+        setSendingRequest(true);
+
+        // Create hiring request data (teacher to student)
+        const requestData = {
+          studentId: studentId,
+          studentName: profileData.fullname || profileData.name || "Student",
+          teacherId: user.uid,
+          teacherName: user.displayName || user.fullname || "Teacher",
+          teacherSubject: user.teachingsubjects || "",
+          teacherLocation: user.location || "",
+          category: "Home Tuition",
+          status: "pending", // pending, accepted, rejected
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Save to Firestore
+        const requestId = await addData("hiring requests", requestData);
+
+        // Create notification for student
+        if (requestId) {
+          const notificationData = {
+            userId: studentId, // Student's user ID
+            type: "hiring_request",
+            title: "New Hiring Request",
+            message: `${requestData.teacherName} is interested in teaching you`,
+            requestId: requestId,
+            teacherId: user.uid,
+            teacherName: requestData.teacherName,
+            studentId: studentId,
+            studentName: requestData.studentName,
+            read: false,
+            createdAt: new Date().toISOString(),
+          };
+          await addData("notifications", notificationData);
+        }
+
+        setHasRequested(true);
+        setRequestStatus('pending');
+        Alert.alert(
+          "Success",
+          "Hiring request sent successfully! The student will be notified.",
+          [{ text: "OK" }]
+        );
       }
+      // Backward compatibility: student sending request to teacher
+      else if (teacherId && profileData) {
+        // Check if request already exists
+        if (hasRequested) {
+          Alert.alert("Already Sent", "You have already sent a hiring request to this teacher");
+          return;
+        }
 
-      // Check if request already exists
-      if (hasRequested) {
-        Alert.alert("Already Sent", "You have already sent a hiring request to this teacher");
-        return;
-      }
+        setSendingRequest(true);
 
-      setSendingRequest(true);
-
-      // Create hiring request data
-      const requestData = {
-        studentId: user.uid,
-        studentName: user.displayName || profileData.fullname || "Student",
-        teacherId: teacherId,
-        teacherName: profileData.name || "Teacher",
-        teacherSubject: profileData.teachingsubjects || "",
-        teacherLocation: profileData.location || "",
-        status: "pending", // pending, accepted, rejected
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Save to Firestore
-      const requestId = await addData("hiring requests", requestData);
-
-      // Create notification for teacher
-      if (requestId) {
-        const notificationData = {
-          userId: teacherId, // Teacher's user ID
-          type: "hiring_request",
-          title: "New Hiring Request",
-          message: `${requestData.studentName} sent you a hiring request`,
-          requestId: requestId,
+        // Create hiring request data
+        const requestData = {
           studentId: user.uid,
-          studentName: requestData.studentName,
+          studentName: user.displayName || profileData.fullname || "Student",
           teacherId: teacherId,
           teacherName: profileData.name || "Teacher",
-          read: false,
+          teacherSubject: profileData.teachingsubjects || "",
+          teacherLocation: profileData.location || "",
+          status: "pending", // pending, accepted, rejected
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
-        await addData("notifications", notificationData);
-      }
 
-      setHasRequested(true);
-      Alert.alert(
-        "Success",
-        "Hiring request sent successfully! The teacher will be notified.",
-        [{ text: "OK" }]
-      );
+        // Save to Firestore
+        const requestId = await addData("hiring requests", requestData);
+
+        // Create notification for teacher
+        if (requestId) {
+          const notificationData = {
+            userId: teacherId, // Teacher's user ID
+            type: "hiring_request",
+            title: "New Hiring Request",
+            message: `${requestData.studentName} sent you a hiring request`,
+            requestId: requestId,
+            studentId: user.uid,
+            studentName: requestData.studentName,
+            teacherId: teacherId,
+            teacherName: profileData.name || "Teacher",
+            read: false,
+            createdAt: new Date().toISOString(),
+          };
+          await addData("notifications", notificationData);
+        }
+
+        setHasRequested(true);
+        Alert.alert(
+          "Success",
+          "Hiring request sent successfully! The teacher will be notified.",
+          [{ text: "OK" }]
+        );
+      }
     } catch (error) {
       console.error("Error sending hiring request:", error);
       Alert.alert("Error", "Failed to send hiring request. Please try again.");
@@ -171,11 +252,11 @@ export default function StudentProfileView({ navigation, route }) {
   useFocusEffect(
     React.useCallback(() => {
       fetchProfile();
-      // Check if student has already sent a hiring request to this teacher
-      if (teacherId) {
+      // Check if hiring request already exists
+      if (studentId || teacherId) {
         checkExistingRequest();
       }
-    }, [fetchProfile, teacherId, checkExistingRequest])
+    }, [fetchProfile, studentId, teacherId, checkExistingRequest])
   );
 
   // Update profile data when Redux user changes (for own profile)
@@ -290,6 +371,10 @@ export default function StudentProfileView({ navigation, route }) {
 
   // Check if viewing teacher profile
   const isTeacherProfile = teacherId || profileData?.role === 'Teacher';
+  const isStudentProfile = studentId || profileData?.role === 'Student';
+  
+  // Check if current user is viewing their own profile
+  const isViewingOwnProfile = profileData?.id === reduxUser?.uid;
 
   if (loading) {
     return (
@@ -551,7 +636,7 @@ export default function StudentProfileView({ navigation, route }) {
       </View>
 
       {/* Edit Button - Only show for student's own profile */}
-      {!isTeacherProfile && (
+      {isViewingOwnProfile && (
         <View style={styles.editButtonContainer}>
           <TouchableOpacity
             onPress={() => navigation.navigate("EditStudentProfile", { profileData })}
@@ -581,6 +666,20 @@ export default function StudentProfileView({ navigation, route }) {
                 : "Send Hiring Request"}
             </Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Student Profile Actions - Only show status if request exists, no send button */}
+      {isStudentProfile && !isViewingOwnProfile && hasRequested && (
+        <View style={styles.requestStatusContainer}>
+          <Text style={styles.requestStatusText}>
+            {requestStatus === 'accepted' ? '✅ Request Accepted' : 
+                 requestStatus === 'rejected' ? '❌ Request Rejected' : 
+                 '⏳ Request Pending'}
+          </Text>
+          {requestStatus === 'pending' && (
+            <Text style={styles.requestSubText}>Student is reviewing your request</Text>
+          )}
         </View>
       )}
     </ScrollView>
@@ -686,5 +785,24 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  requestStatusContainer: {
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  requestStatusText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 5,
+  },
+  requestSubText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
   },
 });

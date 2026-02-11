@@ -7,6 +7,8 @@ import MyApplicationsScreen from '../Pages/Application';
 import ChatScreen from '../Pages/ChatScreen';
 import Browse from '../Pages/PrivBrowse';
 import Viewprofile from '../Pages/Viewprofile';
+import HomeTuitionJobs from '../Pages/HomeTuitionJobs';
+import Studentviewprofile from '../Pages/Studentviewprofile';
 
 const Stack = createNativeStackNavigator();
 
@@ -22,6 +24,8 @@ const HomeStack = () => {
         <Stack.Screen name="application" component={MyApplicationsScreen} />
         <Stack.Screen name="Jobdetails" component={Jobdetails} />
         <Stack.Screen name="ChatScreen" component={ChatScreen} />
+        <Stack.Screen name="HomeTuitionJobs" component={HomeTuitionJobs} />
+        <Stack.Screen name="Studentviewprofile" component={Studentviewprofile} />
     
 
       </Stack.Navigator>

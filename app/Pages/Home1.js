@@ -186,7 +186,18 @@ export default function App({ navigation }) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10, paddingHorizontal: 10 }}>
                 {/* All */}
                 {data?.map((item, index) => (
-                    <TouchableOpacity onPress={() => navigation.navigate("InstBrowse")} style={{ marginHorizontal: 10, alignItems: "center" }}>
+                    <TouchableOpacity 
+                        onPress={() => {
+                            // Navigate based on category title
+                            if (item.title === "Home Tuition") {
+                                navigation.navigate("HomeTuitionJobs");
+                            } else {
+                                // For other categories, keep existing navigation
+                                navigation.navigate("InstBrowse");
+                            }
+                        }} 
+                        style={{ marginHorizontal: 10, alignItems: "center" }}
+                    >
                         <View key={index} style={{ backgroundColor: "#d8b4e2", padding: 20, borderRadius: 10 }}>
                             <Ionicons name={item.icon} size={30} color="#000" />
                         </View>
