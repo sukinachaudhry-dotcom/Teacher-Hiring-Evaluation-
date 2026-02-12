@@ -86,17 +86,14 @@ const JobDetail = ({ route, navigation }) => {
 
   const handleApply = async () => {
     try {
-      console.log('Jobdetails: Starting application process');
       // const user = user.uid ;
       if (!user) {
-        console.log('Jobdetails: No user found');
         Alert.alert('Authentication Required', 'Please log in to apply for this job');
         navigation.navigate('Login');
         return;
       }
 
       if (hasApplied) {
-        console.log('Jobdetails: User already applied');
         Alert.alert('Already Applied', `You've already applied for this job. Status: ${applicationStatus}`);
         return;
       }
@@ -104,10 +101,9 @@ const JobDetail = ({ route, navigation }) => {
       setIsApplying(true);
       
       if (isHomeTuition) {
-        console.log('Jobdetails: Applying for home tuition job');
         // For home tuition, update the hiring request status
-        const hiringRequestRef = doc(db, 'hiring requests', jobId);
-        await updateDoc(hiringRequestRef, {
+        const hiringRequestRef = doc(db, "hiring requests", jobId);
+        await setDoc(hiringRequestRef, {
           status: 'Applied',
           teacherId: user.uid,
           teacherName: user.fullname || user.name || 'Teacher',
@@ -122,7 +118,6 @@ const JobDetail = ({ route, navigation }) => {
         Alert.alert('Application Successful', 'Your application has been submitted successfully!');
         navigation.goBack();
       } else {
-        console.log('Jobdetails: Applying for institution job');
         // For institution jobs, create a new application document
         const applicationRef = doc(collection(db, 'applications'));
         const applicationData = {
@@ -141,9 +136,7 @@ const JobDetail = ({ route, navigation }) => {
           salary: job.salary || 'Negotiable'
         };
 
-        console.log('Jobdetails: Creating application with data:', applicationData);
         await setDoc(applicationRef, applicationData);
-        console.log('Jobdetails: Application created successfully');
 
         setHasApplied(true);
         setApplicationStatus('Pending');
@@ -159,7 +152,7 @@ const JobDetail = ({ route, navigation }) => {
       }
       
     } catch (error) {
-      console.error('Jobdetails: Error applying for job:', error);
+      console.error('Error applying for job:', error);
       Alert.alert('Error', 'Failed to submit application. Please try again.');
     } finally {
       setIsApplying(false);

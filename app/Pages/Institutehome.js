@@ -137,15 +137,30 @@ export default function Institutehome({ navigation }) {
         borderColor: "#e0e0e0",
       }}
     >
-      <Image
-        source={teacher.photoUrl ? { uri: teacher.photoUrl } : require("./Ali.jpeg")}
-        style={{
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          alignSelf: "center",
-        }}
-      />
+      {teacher.photoUrl ? (
+        <Image
+          source={{ uri: teacher.photoUrl }}
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            alignSelf: "center",
+          }}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={{ 
+          width: 60, 
+          height: 60, 
+          borderRadius: 30, 
+          alignSelf: "center", 
+          backgroundColor: '#f5f5f5', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <Ionicons name="person" size={30} color="#999" />
+        </View>
+      )}
       <Text style={{ marginTop: 5, fontWeight: "bold", textAlign: "center" }}>
         {teacher.name || 'Unnamed'}
       </Text>

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useDispatch } from "react-redux";
 import { setUser, setRole } from "../Redux/Slices/HomeDataSlice";
-import { handleSignUp } from "../Helper/firebaseHelper";
+import { handleSignUp, uploadImageToCloudinary } from "../Helper/firebaseHelper";
 import { Dropdown } from "react-native-element-dropdown";
+import * as ImagePicker from 'expo-image-picker';
 
 
 
@@ -68,6 +69,8 @@ const TeacherProfile = ({ navigation }) => {
     { label: "Professional Courses (IT, Skills, Test Prep)", value: "professional" },
   ];
   const [preferredteachingtype, setPreferredteachingtype] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const teachingTypeData = [
     { label: "Home Tuition", value: "home" },
     { label: "School/College", value: "school" },
@@ -80,6 +83,24 @@ const TeacherProfile = ({ navigation }) => {
 
   const dispatch = useDispatch();
 
+  // Function to pick profile image
+  const pickProfileImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setProfileImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   const goToRegister = async () => {
     try {
       // show raw typed value and type
@@ -88,6 +109,21 @@ const TeacherProfile = ({ navigation }) => {
       // normalize email before sending to Firebase
       const emailTrim = (email || "").toString().trim().toLowerCase();
       console.log("Createprofile.goToRegister - trimmed email:", `"${emailTrim}"`);
+
+      // Upload profile image to Cloudinary if selected
+      let profileImageUrl = null;
+      if (profileImage) {
+        setUploading(true);
+        try {
+          profileImageUrl = await uploadImageToCloudinary(profileImage.uri);
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          Alert.alert("⚠️ Upload Error", "Failed to upload profile image. Please try again.");
+          setUploading(false);
+          return;
+        }
+        setUploading(false);
+      }
 
       const payload = {
         role: "Teacher",
@@ -101,6 +137,7 @@ const TeacherProfile = ({ navigation }) => {
         experience,
         teachingsubjects,
         location,
+        profileImage: profileImageUrl, // Add profile image URL
       };
       console.log("Createprofile.goToRegister - payload:", JSON.stringify(payload));
 
@@ -174,9 +211,19 @@ const TeacherProfile = ({ navigation }) => {
       {/* Form */}
       <View style={{ padding: 20, marginTop: -20, backgroundColor: "white", borderRadius: 50 }}>
         {/* Profile Photo */}
-        <TouchableOpacity onPress={() => navigation.navigate("Upload")} style={{ alignItems: "center", marginBottom: 20 }}>
-          <Ionicons name="person-circle-outline" size={80} color="gray" />
-          <Text style={{ color: "purple", fontWeight: "bold" }}>Upload</Text>
+        <TouchableOpacity onPress={pickProfileImage} style={{ alignItems: "center", marginBottom: 20 }}>
+          {profileImage ? (
+            <Image 
+              source={{ uri: profileImage.uri }} 
+              style={{ width: 80, height: 80, borderRadius: 40 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person-circle-outline" size={80} color="gray" />
+          )}
+          <Text style={{ color: "purple", fontWeight: "bold", marginTop: 5 }}>
+            {profileImage ? "Change Photo" : "Upload"}
+          </Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>
           Name
@@ -470,14 +517,16 @@ const TeacherProfile = ({ navigation }) => {
         </View> */}
 
         {/* Button */}
-        <TouchableOpacity onPress={goToRegister} style={{
-          backgroundColor: "purple",
+        <TouchableOpacity onPress={goToRegister} disabled={uploading} style={{
+          backgroundColor: uploading ? "#ccc" : "purple",
           paddingVertical: 12,
           borderRadius: 25,
           alignItems: "center",
           marginTop: 10,
         }}>
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Next</Text>
+          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
+            {uploading ? "Uploading Photo..." : "Next"}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

@@ -253,44 +253,30 @@ const EditStudentProfile = ({ navigation, route }) => {
           borderRadius: 50,
         }}
       >
-        {/* Profile Picture Upload */}
-        <View style={styles.avatarUploadSection}>
-          <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 15, textAlign: "center" }}>
-            Profile Picture
-          </Text>
-          
-          <TouchableOpacity 
-            onPress={handleImagePicker} 
-            disabled={uploadingImage || loading}
-            style={styles.avatarUploadContainer}
-          >
-            {localImageUri ? (
-              // Show selected image preview
-              <Image source={{ uri: localImageUri }} style={styles.avatarPreview} />
-            ) : profilePicUrl ? (
-              // Show existing profile picture
-              <Image source={{ uri: profilePicUrl }} style={styles.avatarPreview} />
-            ) : (
-              // Show placeholder
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="camera-outline" size={40} color="#999" />
-                <Text style={styles.avatarPlaceholderText}>Tap to upload</Text>
-              </View>
-            )}
-            
-            {/* Edit icon overlay */}
-            <View style={styles.avatarEditOverlay}>
-              <Ionicons name="camera" size={20} color="#fff" />
-            </View>
-          </TouchableOpacity>
-          
-          {uploadingImage && (
-            <View style={styles.uploadingIndicator}>
-              <ActivityIndicator size="small" color="purple" />
-              <Text style={styles.uploadingText}>Uploading image...</Text>
-            </View>
+        {/* Profile Photo */}
+        <TouchableOpacity
+          onPress={handleImagePicker}
+          style={{ alignItems: "center", marginBottom: 20 }}
+        >
+          {localImageUri ? (
+            <Image 
+              source={{ uri: localImageUri }} 
+              style={{ width: 80, height: 80, borderRadius: 40 }}
+              resizeMode="cover"
+            />
+          ) : profilePicUrl ? (
+            <Image 
+              source={{ uri: profilePicUrl }} 
+              style={{ width: 80, height: 80, borderRadius: 40 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person-circle-outline" size={80} color="gray" />
           )}
-        </View>
+          <Text style={{ color: "purple", fontWeight: "bold", marginTop: 5 }}>
+            {localImageUri || profilePicUrl ? "Change Photo" : "Upload Photo"}
+          </Text>
+        </TouchableOpacity>
 
         {/* Full Name */}
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>

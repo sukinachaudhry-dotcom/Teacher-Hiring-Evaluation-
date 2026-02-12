@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { Dropdown } from "react-native-element-dropdown";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
+import { uploadImageToCloudinary } from "../Helper/firebaseHelper";
+import * as ImagePicker from 'expo-image-picker';
 
 const UpdateTeacherProfile = ({ navigation, route }) => {
   const profileData = route?.params?.profileData || null;
@@ -62,6 +64,8 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
     { label: "Artificial Intelligence", value: "ai" },
   ];
   const [location, setLocation] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const locationData = [
     { label: "Lahore", value: "lahore" },
     { label: "Karachi", value: "karachi" },
@@ -71,6 +75,24 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
     { label: "Peshawar", value: "peshawar" },
     { label: "Quetta", value: "quetta" },
   ];
+
+  // Function to pick profile image
+  const pickProfileImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setProfileImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
 
   // Load existing profile data
   useEffect(() => {
@@ -100,6 +122,13 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
           setExperience(data.experience || "");
           setTeachingsubjects(data.teachingsubjects || data.subjects || null);
           setLocation(data.location || data.address || null);
+          
+          // Set existing profile image if available
+          if (data.profileImage || data.profilepicurl || data.photourl) {
+            setProfileImage({ 
+              uri: data.profileImage || data.profilepicurl || data.photourl 
+            });
+          }
         }
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -108,6 +137,65 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
 
     loadProfileData();
   }, [profileData]);
+
+  const handleUpdateProfile = async () => {
+    try {
+      setUploading(true);
+      
+      // Upload new profile image to Cloudinary if selected
+      let profileImageUrl = null;
+      if (profileImage && !profileImage.uri.startsWith('http')) {
+        try {
+          profileImageUrl = await uploadImageToCloudinary(profileImage.uri);
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          Alert.alert("⚠️ Upload Error", "Failed to upload profile image. Please try again.");
+          setUploading(false);
+          return;
+        }
+      } else if (profileImage && profileImage.uri.startsWith('http')) {
+        // Keep existing image URL if no new image selected
+        profileImageUrl = profileImage.uri;
+      }
+
+      // Get current user
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser?.uid) {
+        Alert.alert("Error", "User not authenticated");
+        setUploading(false);
+        return;
+      }
+
+      // Prepare update data
+      const updateData = {
+        fullname: name,
+        email,
+        highestqualification: highestQualification,
+        preferredteachinglevel,
+        preferredteachingtype,
+        experience,
+        teachingsubjects,
+        location,
+        profileImage: profileImageUrl,
+        updatedAt: new Date().toISOString()
+      };
+
+      // Update profile in Firestore
+      await updateDoc(doc(db, "users", currentUser.uid), updateData);
+      
+      Alert.alert("✅ Success", "Profile updated successfully!");
+      setUploading(false);
+      
+      // Navigate back
+      navigation.goBack();
+    } catch (error) {
+      console.error("Update error:", error);
+      Alert.alert("❌ Error", "Failed to update profile. Please try again.");
+      setUploading(false);
+    }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
@@ -137,11 +225,21 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
       >
         {/* Profile Photo */}
         <TouchableOpacity
-          onPress={() => navigation.navigate("Upload")}
+          onPress={pickProfileImage}
           style={{ alignItems: "center", marginBottom: 20 }}
         >
-          <Ionicons name="person-circle-outline" size={80} color="gray" />
-          <Text style={{ color: "purple", fontWeight: "bold" }}>Change Photo</Text>
+          {profileImage ? (
+            <Image 
+              source={{ uri: profileImage.uri }} 
+              style={{ width: 80, height: 80, borderRadius: 40 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person-circle-outline" size={80} color="gray" />
+          )}
+          <Text style={{ color: "purple", fontWeight: "bold", marginTop: 5 }}>
+            {profileImage ? "Change Photo" : "Upload Photo"}
+          </Text>
         </TouchableOpacity>
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>
           Name
@@ -393,23 +491,10 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
 
         {/* Button */}
         <TouchableOpacity
-          onPress={() => {
-            // Pass all current form data to EditDocs
-            const formData = {
-              name,
-              email,
-              highestQualification,
-              preferredteachinglevel,
-              preferredteachingtype,
-              experience,
-              teachingsubjects,
-              location,
-              profileData: profileData, // Pass original profile data too
-            };
-            navigation.navigate("EditDocs", { formData, profileData });
-          }}
+          onPress={handleUpdateProfile}
+          disabled={uploading}
           style={{
-            backgroundColor: "purple",
+            backgroundColor: uploading ? "#ccc" : "purple",
             paddingVertical: 12,
             borderRadius: 25,
             alignItems: "center",
@@ -417,7 +502,7 @@ const UpdateTeacherProfile = ({ navigation, route }) => {
           }}
         >
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-            Next
+            {uploading ? "Updating..." : "Update Profile"}
           </Text>
         </TouchableOpacity>
       </View>

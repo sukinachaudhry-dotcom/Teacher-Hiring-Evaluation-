@@ -605,7 +605,7 @@ export default function StudentProfileView({ navigation, route }) {
             {/* Show any additional fields from Redux */}
             {Object.keys(profileData).map((key) => {
               // Skip already displayed fields and system fields (case-insensitive check)
-              const displayedFields = ['email', 'fullname', 'phonenumber', 'address', 'selectclass', 'subjects', 'modeofteaching', 'role', 'uid', 'createdat', 'updatedat', 'profilepicurl', 'profileimage', 'photourl', 'photo', 'id', '_id'];
+              const displayedFields = ['email', 'fullname', 'phonenumber', 'address', 'selectclass', 'subjects', 'modeofteaching', 'role', 'uid', 'createdat', 'updatedat', 'approvedat', 'profilepicurl', 'profileimage', 'photourl', 'photo', 'id', '_id'];
               const keyLower = key.toLowerCase();
               if (displayedFields.includes(keyLower)) {
                 return null;

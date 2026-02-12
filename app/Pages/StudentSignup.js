@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { useDispatch } from "react-redux";
 import { setUser, setRole } from "../Redux/Slices/HomeDataSlice";
-import { handleSignUp } from "../Helper/firebaseHelper";
+import { handleSignUp, uploadImageToCloudinary } from "../Helper/firebaseHelper";
 import { Dropdown } from "react-native-element-dropdown";
+import * as ImagePicker from 'expo-image-picker';
 
 const StudentSignup = ({ navigation }) => {
   const [fullname, setFullname] = useState("");
@@ -18,6 +19,8 @@ const StudentSignup = ({ navigation }) => {
   const [subjects, setSubjects] = useState("");
   const [modeofteaching, setModeofteaching] = useState("");
   const [confirmpassword, setConfirmpassword] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const classData = [
@@ -56,6 +59,24 @@ const StudentSignup = ({ navigation }) => {
 
   const dispatch = useDispatch();
 
+  // Function to pick profile image
+  const pickProfileImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setProfileImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   const handleStudentSignUp = async () => {
     // Basic validation
     if (!fullname || !email || !password || !confirmpassword || !address || !phonenumber || !selectclass || !subjects || !modeofteaching) {
@@ -85,6 +106,22 @@ const StudentSignup = ({ navigation }) => {
     setLoading(true);
 
     try {
+      // Upload profile image to Cloudinary if selected
+      let profileImageUrl = null;
+      if (profileImage) {
+        setUploading(true);
+        try {
+          profileImageUrl = await uploadImageToCloudinary(profileImage.uri);
+        } catch (uploadError) {
+          console.error("Image upload error:", uploadError);
+          Alert.alert("⚠️ Upload Error", "Failed to upload profile image. Please try again.");
+          setUploading(false);
+          setLoading(false);
+          return;
+        }
+        setUploading(false);
+      }
+
       // Create student data object
       const studentData = {
         role: "Student",
@@ -95,6 +132,7 @@ const StudentSignup = ({ navigation }) => {
         selectclass,
         subjects,
         modeofteaching,
+        profileImage: profileImageUrl, // Add profile image URL
         createdAt: new Date().toISOString(),
         profileCompleted: true
       };
@@ -148,6 +186,22 @@ const StudentSignup = ({ navigation }) => {
           borderRadius: 50,
         }}
       >
+        {/* Profile Photo */}
+        <TouchableOpacity onPress={pickProfileImage} style={{ alignItems: "center", marginBottom: 20 }}>
+          {profileImage ? (
+            <Image 
+              source={{ uri: profileImage.uri }} 
+              style={{ width: 80, height: 80, borderRadius: 40 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person-circle-outline" size={80} color="gray" />
+          )}
+          <Text style={{ color: "purple", fontWeight: "bold", marginTop: 5 }}>
+            {profileImage ? "Change Photo" : "Upload"}
+          </Text>
+        </TouchableOpacity>
+
         {/* Full Name */}
         <Text style={{ fontSize: 14, fontWeight: "500", marginBottom: 5 }}>
           Full Name
@@ -422,7 +476,7 @@ const StudentSignup = ({ navigation }) => {
           }}
         >
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-            {loading ? "Creating Account..." : "Create Student Account"}
+            {uploading ? "Uploading Photo..." : loading ? "Creating Account..." : "Create Student Account"}
           </Text>
         </TouchableOpacity>
 

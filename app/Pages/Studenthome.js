@@ -298,12 +298,18 @@ export default function App({ navigation }) {
                                             elevation: 3,
                                         }}
                                     >
+                                        {(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? (
                                         <Image
                                             key={`search-${teacher.id}-${teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl || 'default'}`}
-                                            source={(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? { uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) } : require("./Ali.jpeg")}
+                                            source={{ uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) }}
                                             style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
                                             resizeMode="cover"
                                         />
+                                    ) : (
+                                        <View style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Ionicons name="person" size={30} color="#999" />
+                                        </View>
+                                    )}
                                         <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
                                         <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
                                         <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
@@ -386,6 +392,7 @@ export default function App({ navigation }) {
                                         'math': 'Maths',
                                         'maths': 'Maths',
                                         'chemistry': 'Chemistry',
+                                        'english': 'EnglishTeachers',
                                         'courses': 'CoursesJobs',
                                         // Only include routes that exist in navigation stack
                                     };
@@ -447,12 +454,18 @@ export default function App({ navigation }) {
                                 elevation: 3,
                             }}
                         >
+                            {(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? (
                             <Image
                                 key={`popular-${teacher.id}-${teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl || 'default'}`}
-                                source={(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? { uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) } : require("./Ali.jpeg")}
+                                source={{ uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) }}
                                 style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
                                 resizeMode="cover"
                             />
+                        ) : (
+                            <View style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+                                <Ionicons name="person" size={30} color="#999" />
+                            </View>
+                        )}
                             <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
                             <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
                             <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
@@ -530,12 +543,18 @@ export default function App({ navigation }) {
                                 elevation: 3,
                             }}
                         >
+                            {(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? (
                             <Image
                                 key={`recent-${teacher.id}-${teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl || 'default'}`}
-                                source={(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? { uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) } : require("./Ali.jpeg")}
+                                source={{ uri: (teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) }}
                                 style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
                                 resizeMode="cover"
                             />
+                        ) : (
+                            <View style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+                                <Ionicons name="person" size={30} color="#999" />
+                            </View>
+                        )}
                             <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
                             <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
                             <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>

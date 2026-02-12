@@ -172,10 +172,9 @@ export default function ChatScreen({ navigation, route }) {
         isCurrentUser ? styles.messageRight : styles.messageLeft
       ]}>
         {!isCurrentUser && (
-          <Image
-            source={item.senderAvatar ? { uri: item.senderAvatar } : require('./Ali.jpeg')}
-            style={styles.avatar}
-          />
+          <View style={{ width: 40, height: 40, borderRadius: 20, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="person" size={20} color="#999" />
+          </View>
         )}
         <View style={[
           styles.messageBubble,
@@ -198,10 +197,9 @@ export default function ChatScreen({ navigation, route }) {
           </Text>
         </View>
         {isCurrentUser && (
-          <Image
-            source={currentUser.avatar ? { uri: currentUser.avatar } : require('./Ali.jpeg')}
-            style={styles.avatar}
-          />
+          <View style={{ width: 40, height: 40, borderRadius: 20, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="person" size={20} color="#999" />
+          </View>
         )}
       </View>
     );

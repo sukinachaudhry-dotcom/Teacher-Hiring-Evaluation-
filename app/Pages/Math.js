@@ -96,10 +96,17 @@ export default function MathCoursesPage({ navigation }) {
         elevation: 3,
       }}
     >
-      <Image
-        source={teacher.photoUrl || teacher.profileImage ? { uri: teacher.photoUrl || teacher.profileImage } : require("./Ali.jpeg")}
-        style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
-      />
+      {teacher.photoUrl || teacher.profileImage ? (
+        <Image
+          source={{ uri: teacher.photoUrl || teacher.profileImage }}
+          style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+          <Ionicons name="person" size={30} color="#999" />
+        </View>
+      )}
       <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
       <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
       <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>

@@ -84,146 +84,46 @@ export default function Viewall({ navigation, route }) {
   );
 
   const TeacherCard = ({ teacher }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
+    <View
       style={{
         width: "48%",
         backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 15,
-        marginBottom: 16,
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 15,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: "#e0e0e0",
+        shadowRadius: 4,
+        elevation: 3,
       }}
     >
-      {/* Profile Picture */}
-      <View style={{ alignItems: "center", marginBottom: 12 }}>
-        {teacher.photoUrl || teacher.profileImage ? (
-      <Image
-            source={{ uri: teacher.photoUrl || teacher.profileImage }}
-            style={{ width: 70, height: 70, borderRadius: 35, borderWidth: 2, borderColor: "purple" }}
-          />
-        ) : (
-          <View style={{ 
-            width: 70, 
-            height: 70, 
-            borderRadius: 35, 
-            backgroundColor: "#f5f5f5",
-            justifyContent: "center",
-            alignItems: "center",
-            borderWidth: 2,
-            borderColor: "purple"
-          }}>
-            <Ionicons name="person" size={35} color="purple" />
-          </View>
-        )}
-      </View>
-
-      {/* Teacher Name */}
-      <Text style={{ 
-        marginTop: 5, 
-        fontWeight: 'bold', 
-        fontSize: 16,
-        textAlign: "center",
-        color: "#1a1a1a",
-        marginBottom: 4
-      }}>
-        {teacher.name || 'Unnamed'}
-      </Text>
-
-      {/* Subject */}
-      {teacher.teachingsubjects && (
-        <View style={{ 
-          flexDirection: "row", 
-          alignItems: "center", 
-          justifyContent: "center",
-          marginBottom: 6,
-          backgroundColor: "#f8f8f8",
-          paddingVertical: 4,
-          paddingHorizontal: 8,
-          borderRadius: 8,
-          alignSelf: "center"
-        }}>
-          <Ionicons name="book-outline" size={14} color="purple" style={{ marginRight: 4 }} />
-          <Text style={{ 
-            fontSize: 12, 
-            color: "#444",
-            fontWeight: "500"
-          }}>
-            {teacher.teachingsubjects}
-          </Text>
+      {teacher.photoUrl ? (
+        <Image
+          source={{ uri: teacher.photoUrl }}
+          style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center" }}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={{ width: 60, height: 60, borderRadius: 30, alignSelf: "center", backgroundColor: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+          <Ionicons name="person" size={30} color="#999" />
         </View>
       )}
-
-      {/* Location */}
-      {teacher.location && (
-        <View style={{ 
-          flexDirection: "row", 
-          alignItems: "center", 
-          justifyContent: "center",
-          marginBottom: 4
-        }}>
-          <Ionicons name="location-outline" size={12} color="#666" style={{ marginRight: 4 }} />
-          <Text style={{ fontSize: 11, color: '#666', textAlign: "center" }}>
-            {teacher.location}
-          </Text>
-        </View>
-      )}
-
-      {/* Experience */}
-      {teacher.experience && (
-        <View style={{ 
-          flexDirection: "row", 
-          alignItems: "center", 
-          justifyContent: "center",
-          marginBottom: 10
-        }}>
-          <Ionicons name="briefcase-outline" size={12} color="#666" style={{ marginRight: 4 }} />
-          <Text style={{ fontSize: 11, color: '#666', textAlign: "center" }}>
-            {teacher.experience}
-          </Text>
-        </View>
-      )}
+      <Text style={{ marginTop: 5, fontWeight: 'bold', textAlign: "center" }}>{teacher.name || 'Unnamed'}</Text>
+      <Text style={{ marginTop: 2, fontWeight: 'bold', textAlign: "center" }}>{teacher.teachingsubjects || ''}</Text>
+      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.location || ''}</Text>
+      <Text style={{ marginTop: 2, color: '#555', textAlign: "center" }}>{teacher.experience ? `${teacher.experience}` : ''}</Text>
 
       {/* Buttons */}
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, gap: 6 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
         <TouchableOpacity
-          style={{ 
-            backgroundColor: "purple", 
-            paddingVertical: 10,
-            paddingHorizontal: 12,
-            borderRadius: 10, 
-            flex: 1,
-            marginRight: 3
-          }}
-          onPress={(e) => {
-            e.stopPropagation();
-            navigation.navigate("Studentviewprofile", { teacherId: teacher.id });
-          }}
+          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginRight: 5 }}
+          onPress={() => navigation.navigate("Studentviewprofile", { teacherId: teacher.id })}
         >
-          <Text style={{ color: "#fff", textAlign: "center", fontSize: 12, fontWeight: "600" }}>
-            Detail
-          </Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Detail</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ 
-            backgroundColor: "#fff", 
-            paddingVertical: 10,
-            paddingHorizontal: 12,
-            borderRadius: 10, 
-            flex: 1,
-            marginLeft: 3,
-            borderWidth: 1.5,
-            borderColor: "purple"
-          }}
-          onPress={async (e) => {
-            e.stopPropagation();
+          style={{ backgroundColor: "purple", padding: 8, borderRadius: 20, flex: 1, marginLeft: 5 }}
+          onPress={async () => {
             try {
               const auth = getAuth();
               const currentUser = auth.currentUser;
@@ -236,7 +136,7 @@ export default function Viewall({ navigation, route }) {
                   otherUser: {
                     id: teacher.id,
                     name: otherUser?.name || otherUser?.fullname || 'User',
-                    photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || null,
+                    photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || otherUser?.photoUrl || null,
                   }
                 });
               }
@@ -245,12 +145,10 @@ export default function Viewall({ navigation, route }) {
             }
           }}
         >
-          <Text style={{ color: "purple", textAlign: "center", fontSize: 12, fontWeight: "600" }}>
-            Chat
-          </Text>
+          <Text style={{ color: "#fff", textAlign: "center", fontSize: 14 }}>Chat</Text>
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   return (

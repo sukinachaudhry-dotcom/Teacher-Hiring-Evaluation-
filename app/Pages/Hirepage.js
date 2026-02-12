@@ -566,14 +566,23 @@ const HirePage = () => {
             style={styles.card}
             onPress={() => navigation.navigate("Studentviewprofile", { teacherId: item.teacherId })}
           >
-            <Image
-              source={
-                item.teacherPhoto
-                  ? { uri: item.teacherPhoto }
-                  : require("./Ali.jpeg")
-              }
-              style={styles.image}
-            />
+            {item.teacherPhoto ? (
+              <Image
+                source={{ uri: item.teacherPhoto }}
+                style={styles.image}
+              />
+            ) : (
+              <View style={{ 
+                width: 70, 
+                height: 70, 
+                borderRadius: 35, 
+                backgroundColor: '#f5f5f5', 
+                justifyContent: 'center', 
+                alignItems: 'center' 
+              }}>
+                <Ionicons name="person" size={35} color="#999" />
+              </View>
+            )}
             <View style={styles.info}>
               <Text style={styles.name}>{item.teacherName}</Text>
               <Text style={styles.subject}>{item.teacherSubject || "Subject not specified"}</Text>
