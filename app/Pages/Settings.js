@@ -226,11 +226,11 @@ const Settings = ({ navigation }) => {
                     />
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate("Complains")} style={{ flexDirection: "row", alignItems: "center", padding: 15, }} >
+                {/* <TouchableOpacity onPress={() => navigation.navigate("Complains")} style={{ flexDirection: "row", alignItems: "center", padding: 15, }} >
                     <Ionicons name="chatbubbles-outline" size={20} color="gray" />
                     <Text style={{ marginLeft: 15, fontSize: 16, color: "#000" }}>Complains</Text>
                     <Ionicons name="chevron-forward" size={18} color="gray" style={{ marginLeft: "auto" }} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity onPress={() => navigation.navigate("ChangePass")} style={{ flexDirection: "row", alignItems: "center", padding: 15, }} >
                     <Ionicons name="shield-outline" size={20} color="gray" />

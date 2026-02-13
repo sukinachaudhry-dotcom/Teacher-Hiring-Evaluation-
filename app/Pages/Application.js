@@ -37,21 +37,70 @@ export default function MyApplicationsScreen({ navigation }) {
           const appData = { id: doc.id, ...doc.data() };
           console.log('Applications: Processing application:', appData.id, appData.jobTitle);
 
+          // Initialize hasTest property
+          appData.hasTest = false;
+          appData.testId = null;
+          appData.testData = null;
+
           // Check if there's a test for this application
           if (appData.institutionId) {
             const testsRef = collection(db, 'tests');
             const testQuery = query(
               testsRef,
-              where('institutionUid', '==', appData.institutionId),
-              where('subjectName', '==', appData.jobTitle?.split(' ')[0] || '')
+              where('institutionUid', '==', appData.institutionId)
             );
 
             const testSnapshot = await getDocs(testQuery);
+            console.log('Tests found for institution:', testSnapshot.size, 'Institution ID:', appData.institutionId);
+            
             if (!testSnapshot.empty) {
-              const testData = testSnapshot.docs[0].data();
-              appData.hasTest = true;
-              appData.testId = testSnapshot.docs[0].id;
-              appData.testData = testData;
+              // Log all available tests for debugging
+              testSnapshot.docs.forEach(doc => {
+                const testData = doc.data();
+                console.log('Available test:', {
+                  id: doc.id,
+                  subjectName: testData.subjectName,
+                  institutionName: testData.institutionName
+                });
+              });
+
+              // Find test that matches the job subject
+              const jobTitle = (appData.jobTitle || '').toLowerCase();
+              const jobSubject = jobTitle.includes('physics') ? 'physics' :
+                               jobTitle.includes('math') ? 'math' :
+                               jobTitle.includes('chemistry') ? 'chemistry' :
+                               jobTitle.includes('computer') ? 'computer' :
+                               jobTitle.includes('english') ? 'english' :
+                               jobTitle.includes('biology') ? 'biology' :
+                               jobTitle.split(' ')[0] || '';
+
+              console.log('Job title:', appData.jobTitle, 'Extracted subject:', jobSubject);
+
+              const matchingTest = testSnapshot.docs.find(doc => {
+                const testData = doc.data();
+                const matches = testData.subjectName?.toLowerCase() === jobSubject ||
+                              testData.subjectName?.toLowerCase() === jobTitle ||
+                              testData.subjectName?.toLowerCase().includes(jobSubject) ||
+                              jobSubject.includes(testData.subjectName?.toLowerCase() || '');
+                console.log('Test match check:', {
+                  testSubject: testData.subjectName,
+                  jobSubject: jobSubject,
+                  matches: matches
+                });
+                return matches;
+              });
+
+              if (matchingTest) {
+                const testData = matchingTest.data();
+                appData.hasTest = true;
+                appData.testId = matchingTest.id;
+                appData.testData = testData;
+                console.log('✅ Test found for job:', appData.jobTitle, 'Test ID:', matchingTest.id);
+              } else {
+                console.log('❌ No matching test found for job:', appData.jobTitle);
+              }
+            } else {
+              console.log('❌ No tests found for institution:', appData.institutionId);
             }
           }
 
@@ -88,7 +137,18 @@ export default function MyApplicationsScreen({ navigation }) {
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
         <MaterialCommunityIcons name="progress-clock" size={18} color="black" style={{ marginRight: 6 }} />
-        <Text style={styles.status}>Status: {item.status || 'Pending'}</Text>
+        <Text style={styles.statusLabel}>Status:</Text>
+        <View style={[
+          styles.statusBadge,
+          item.status === 'accepted' ? styles.statusApproved :
+          item.status === 'rejected' ? styles.statusRejected :
+          item.status === 'contacted' ? styles.statusContacted :
+          styles.statusPending
+        ]}>
+          <Text style={styles.statusText}>
+            {item.status === 'contacted' ? 'Contacted' : item.status || 'Pending'}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -168,6 +228,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "purple",
+  },
+  statusLabel: {
+    fontSize: 14,
+    color: "#555",
+    marginRight: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    fontSize: 12,
+    textTransform: 'capitalize',
+  },
+  statusApproved: {
+    backgroundColor: '#d4edda',
+  },
+  statusRejected: {
+    backgroundColor: '#f8d7da',
+  },
+  statusContacted: {
+    backgroundColor: '#fff3cd',
+  },
+  statusPending: {
+    backgroundColor: '#e2e3e5',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#383d41',
   },
   buttonContainer: {
     flexDirection: 'row',

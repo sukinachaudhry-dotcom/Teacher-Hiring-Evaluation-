@@ -106,18 +106,29 @@ export default function Institutehome({ navigation }) {
     }
   }, []);
 
-  // Filter teachers based on search text
+  // Filter teachers based on search text and ensure uniqueness
   const filteredTeachers = React.useMemo(() => {
     if (!searchText.trim()) {
-      return teachers;
+      // Remove duplicates based on teacher ID
+      const uniqueTeachers = teachers.filter((teacher, index, self) => 
+        teacher.id && self.findIndex(t => t.id === teacher.id) === index
+      );
+      return uniqueTeachers;
     }
     
     const searchLower = searchText.toLowerCase().trim();
-    return teachers.filter(teacher => {
+    const searchedTeachers = teachers.filter(teacher => {
       const name = (teacher.name || '').toLowerCase();
       const subject = (teacher.teachingsubjects || teacher.subjects || '').toLowerCase();
       return name.includes(searchLower) || subject.includes(searchLower);
     });
+    
+    // Remove duplicates from search results as well
+    const uniqueSearchedTeachers = searchedTeachers.filter((teacher, index, self) => 
+      teacher.id && self.findIndex(t => t.id === teacher.id) === index
+    );
+    
+    return uniqueSearchedTeachers;
   }, [teachers, searchText]);
 
   // Teacher Card Component
@@ -137,9 +148,9 @@ export default function Institutehome({ navigation }) {
         borderColor: "#e0e0e0",
       }}
     >
-      {teacher.photoUrl ? (
+      {(teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl) ? (
         <Image
-          source={{ uri: teacher.photoUrl }}
+          source={{ uri: teacher.photoUrl || teacher.profileImage || teacher.profilePicUrl }}
           style={{
             width: 60,
             height: 60,

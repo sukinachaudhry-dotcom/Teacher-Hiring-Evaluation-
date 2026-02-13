@@ -230,9 +230,9 @@ export default function ChatScreen({ navigation, route }) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        {/* <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         {otherUser?.photoUrl ? (
           <Image source={{ uri: otherUser.photoUrl }} style={styles.headerAvatar} />
         ) : (

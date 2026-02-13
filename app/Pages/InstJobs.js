@@ -1,12 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity } from "react-native";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, FlatList, Alert } from "react-native";
+import { collection, onSnapshot, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 
 const JobsScreen = ({navigation}) => {
   const [jobs, setJobs] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const user = auth?.currentUser;
+
+  const handleDeleteJob = async (jobId) => {
+    Alert.alert(
+      "Delete Job",
+      "Are you sure you want to delete this job posting?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "post jobs", jobId));
+              console.log("Job deleted successfully");
+            } catch (error) {
+              console.error("Error deleting job:", error);
+              Alert.alert("Error", "Failed to delete job. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
 
   useEffect(() => {
     const uid = auth?.currentUser?.uid;
@@ -27,7 +53,7 @@ const JobsScreen = ({navigation}) => {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#d8b4e2" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         
         {/* Header */}
@@ -50,7 +76,7 @@ const JobsScreen = ({navigation}) => {
               elevation: 3,
             }}
           >
-            <Text style={{ fontSize: 18, fontWeight: "bold", color: "#4A235A" }}>
+            <Text style={{ fontSize: 18, fontWeight: "bold", color: "Black" }}>
               {item.jobTitle || "Teaching Job"}
             </Text>
             {!!item.location && (
@@ -86,7 +112,11 @@ const JobsScreen = ({navigation}) => {
               <TouchableOpacity
                 onPress={() => navigation.navigate("Applicants", {
                   screen: "ApplicantsList",
-                  params: { jobId: item.id, jobTitle: item.jobTitle },
+                  params: { 
+                    jobId: item.id, 
+                    jobTitle: item.jobTitle,
+                    showTestResults: true
+                  }
                 })}
                 style={{
                   backgroundColor: "#4CAF50",
@@ -100,9 +130,7 @@ const JobsScreen = ({navigation}) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                // onPress={() =>
-                //   setJobs(jobs.filter((job) => job.id !== item.id))
-                // }
+                onPress={() => handleDeleteJob(item.id)}
                 style={{
                   backgroundColor: "purple",
                   paddingVertical: 8,

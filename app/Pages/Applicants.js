@@ -9,20 +9,24 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Alert
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { collection, doc, onSnapshot, orderBy, query, where, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, where, getDoc, getDocs, updateDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import { useNavigation } from "@react-navigation/native";
 import { useSelector } from 'react-redux';
+import { getAuth } from "firebase/auth";
+import { getOrCreateConversation, getDataById } from "../Helper/firebaseHelper";
 
 export default function Applicants({ route }) {
-  const { jobId, jobTitle: jobTitleParam } = route.params || {};
+  const { jobId, jobTitle: jobTitleParam, showTestResults } = route.params || {};
   const [applicants, setApplicants] = useState([]);
   const [jobDetails, setJobDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [testResults, setTestResults] = useState({});
   const navigation = useNavigation();
   const user = useSelector(state => state.home.user);
 
@@ -46,6 +50,91 @@ export default function Applicants({ route }) {
     
     fetchJobDetails();
   }, [jobId]);
+
+  const fetchTestResults = async (applicantUserId, jobId) => {
+    try {
+      console.log('🔍 Fetching test results for:', { applicantUserId, jobId });
+      
+      // First, let's check if there are ANY test results in the database
+      const allTestResultsQuery = query(collection(db, 'testResults'));
+      const allTestResultsSnapshot = await getDocs(allTestResultsQuery);
+      console.log('📊 Total test results in database:', allTestResultsSnapshot.size);
+      
+      allTestResultsSnapshot.docs.forEach(doc => {
+        const result = doc.data();
+        console.log('📝 Test result:', {
+          id: doc.id,
+          teacherId: result.teacherId,
+          userId: result.userId,
+          jobId: result.jobId,
+          score: result.score,
+          passed: result.passed
+        });
+      });
+      
+      // Try multiple query approaches
+      let testResultsSnapshot;
+      
+      // Approach 1: teacherId field
+      try {
+        const testResultsQuery1 = query(
+          collection(db, 'testResults'),
+          where('teacherId', '==', applicantUserId),
+          where('jobId', '==', jobId)
+        );
+        testResultsSnapshot = await getDocs(testResultsQuery1);
+        console.log('🎯 Approach 1 (teacherId):', testResultsSnapshot.size);
+      } catch (error1) {
+        console.log('❌ Approach 1 failed:', error1.message);
+      }
+      
+      // Approach 2: userId field (fallback)
+      if (!testResultsSnapshot || testResultsSnapshot.empty) {
+        try {
+          const testResultsQuery2 = query(
+            collection(db, 'testResults'),
+            where('userId', '==', applicantUserId),
+            where('jobId', '==', jobId)
+          );
+          testResultsSnapshot = await getDocs(testResultsQuery2);
+          console.log('🎯 Approach 2 (userId):', testResultsSnapshot.size);
+        } catch (error2) {
+          console.log('❌ Approach 2 failed:', error2.message);
+        }
+      }
+      
+      // Approach 3: Any applicant field (fallback)
+      if (!testResultsSnapshot || testResultsSnapshot.empty) {
+        try {
+          const testResultsQuery3 = query(
+            collection(db, 'testResults'),
+            where('applicantId', '==', applicantUserId),
+            where('jobId', '==', jobId)
+          );
+          testResultsSnapshot = await getDocs(testResultsQuery3);
+          console.log('🎯 Approach 3 (applicantId):', testResultsSnapshot.size);
+        } catch (error3) {
+          console.log('❌ Approach 3 failed:', error3.message);
+        }
+      }
+      
+      if (testResultsSnapshot && !testResultsSnapshot.empty) {
+        const result = testResultsSnapshot.docs[0].data();
+        console.log('✅ Test result data:', result);
+        return {
+          hasTest: true,
+          score: result.score,
+          passed: result.passed,
+          submittedAt: result.submittedAt
+        };
+      }
+      console.log('❌ No test results found for:', { applicantUserId, jobId });
+      return { hasTest: false };
+    } catch (error) {
+      console.error('💥 Error fetching test results:', error);
+      return { hasTest: false };
+    }
+  };
 
   const fetchApplicationsByJobId = async () => {
     try {
@@ -163,6 +252,15 @@ export default function Applicants({ route }) {
             const userDoc = await getDoc(doc(db, 'users', appData.userId));
             if (userDoc.exists()) {
               const userData = userDoc.data();
+              
+              // Fetch test results if showTestResults is true
+              let testResultData = { hasTest: false };
+              if (showTestResults) {
+                console.log('Fetching test results for applicant:', appData.userId);
+                testResultData = await fetchTestResults(appData.userId, appData.jobId || jobId);
+                console.log('Test result attached to applicant:', testResultData);
+              }
+              
               allApplications.push({
                 id: appDoc.id,
                 ...appData,
@@ -176,7 +274,8 @@ export default function Applicants({ route }) {
                 location: userData?.location || userData?.address || '',
                 photoUrl: userData?.profileImage || userData?.profilePicUrl || userData?.photoUrl || null,
                 status: appData.status || 'Pending',
-                userId: appData.userId
+                userId: appData.userId,
+                testResult: testResultData
               });
             } else {
               console.warn('User not found for userId:', appData.userId);
@@ -282,9 +381,10 @@ export default function Applicants({ route }) {
               styles.statusBadge, 
               item.status === 'accepted' ? styles.statusApproved : 
               item.status === 'rejected' ? styles.statusRejected : 
+              item.status === 'contacted' ? styles.statusContacted :
               styles.statusPending
             ]}>
-              {item.status || 'pending'}
+              {item.status === 'contacted' ? 'Contacted' : item.status || 'pending'}
             </Text>
           </View>
           <Text style={styles.jobTitle} numberOfLines={1} ellipsizeMode="tail">
@@ -296,9 +396,89 @@ export default function Applicants({ route }) {
           <Text style={styles.detail}>
             <Icon name="school" size={14} color="#666" /> {item.experience || 'N/A'} experience
           </Text>
+          
+          {/* Test Results Display */}
+          {showTestResults && item.testResult?.hasTest && (
+            <View style={styles.testResultContainer}>
+              <View style={styles.testResultHeader}>
+                <Icon name="assignment" size={16} color="#4CAF50" />
+                <Text style={styles.testResultTitle}>Test Result</Text>
+              </View>
+              <View style={[
+                styles.testScoreBadge,
+                item.testResult.passed ? styles.testPassed : styles.testFailed
+              ]}>
+                <Text style={styles.testScoreText}>
+                  {item.testResult.score}% 
+                  {item.testResult.passed ? ' ✓' : ' ✗'}
+                </Text>
+              </View>
+              <Text style={styles.testDate}>
+                Taken: {new Date(item.testResult.submittedAt).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+          
           <Text style={[styles.detail, { color: '#666', fontSize: 12, marginTop: 5 }]}>
             Updated: {item.updatedAt?.toLocaleDateString?.() || 'N/A'}
           </Text>
+          
+          {/* Chat Button */}
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={async () => {
+              try {
+                const authInstance = getAuth();
+                const currentUser = authInstance.currentUser;
+
+                if (!currentUser?.uid) {
+                  Alert.alert("Error", "Please login first to start chat.");
+                  return;
+                }
+
+                if (!item?.userId) {
+                  Alert.alert("Error", "Teacher ID not found.");
+                  return;
+                }
+
+                const conversationId = await getOrCreateConversation(currentUser.uid, item.userId);
+                const otherUser = await getDataById("users", item.userId);
+
+                if (!conversationId) {
+                  Alert.alert("Error", "Unable to start chat. Please try again.");
+                  return;
+                }
+
+                // Update applicant status to 'contacted' when chat starts
+                try {
+                  const applicationRef = doc(db, 'applications', item.id);
+                  await updateDoc(applicationRef, {
+                    status: 'contacted',
+                    updatedAt: new Date()
+                  });
+                  console.log('✅ Applicant status updated to contacted');
+                } catch (updateError) {
+                  console.error('Error updating applicant status:', updateError);
+                  // Continue with chat even if status update fails
+                }
+
+                navigation.navigate("ChatScreen", {
+                  conversationId,
+                  otherUser: {
+                    id: item.userId,
+                    name: otherUser?.name || otherUser?.fullname || item.name || "User",
+                    photoUrl: otherUser?.profilePicUrl || otherUser?.profileImage || otherUser?.photoUrl || item.photoUrl || null,
+                  },
+                });
+              } catch (error) {
+                console.error("Error starting chat:", error);
+                Alert.alert("Error", "Chat open nahi ho rahi. Please try again.");
+              }
+            }}
+          >
+            <Icon name="chat" size={16} color="#fff" />
+            <Text style={styles.chatButtonText}>Chat</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -459,16 +639,20 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   statusApproved: {
-    backgroundColor: '#E6F7E6',
-    color: '#2E7D32',
+    backgroundColor: '#d4edda',
+    color: '#155724',
   },
   statusRejected: {
-    backgroundColor: '#FFEBEE',
-    color: '#C62828',
+    backgroundColor: '#f8d7da',
+    color: '#721c24',
+  },
+  statusContacted: {
+    backgroundColor: '#fff3cd',
+    color: '#856404',
   },
   statusPending: {
-    backgroundColor: '#FFF8E1',
-    color: '#F57F17',
+    backgroundColor: '#e2e3e5',
+    color: '#383d41',
   },
   actionRow: {
     flexDirection: 'row',
@@ -489,5 +673,64 @@ const styles = StyleSheet.create({
     color: '#fff', 
     fontWeight: '500', 
     fontSize: 12,
+  },
+  testResultContainer: {
+    marginTop: 8,
+    padding: 10,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  testResultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  testResultTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 6,
+  },
+  testScoreBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  testPassed: {
+    backgroundColor: '#d4edda',
+  },
+  testFailed: {
+    backgroundColor: '#f8d7da',
+  },
+  testScoreText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  testDate: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 4,
+  },
+  chatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'purple',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  chatButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });

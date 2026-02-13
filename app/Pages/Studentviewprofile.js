@@ -203,7 +203,7 @@ export default function StudentProfileView({ navigation, route }) {
         // Create hiring request data
         const requestData = {
           studentId: user.uid,
-          studentName: user.displayName || profileData.fullname || "Student",
+          studentName: user.displayName || user.fullname || profileData.fullname || profileData.name || "Student",
           teacherId: teacherId,
           teacherName: profileData.name || "Teacher",
           teacherSubject: profileData.teachingsubjects || "",

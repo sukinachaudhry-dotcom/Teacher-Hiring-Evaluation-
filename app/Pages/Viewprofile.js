@@ -452,7 +452,7 @@ export default function Viewprofile({ navigation, route }) {
           
           {Object.keys(profileData).map((key) => {
             // Skip internal fields and already displayed fields
-            const skipFields = ['id', 'uid', 'email', 'phonenumber', 'address', 'location', 'institutionname', 'fullname', 'name', 'type', 'subjects', 'teachingsubjects', 'description', 'about', 'bio', 'introduction', 'profileImage', 'profilePicUrl', 'photoUrl', 'photo', 'coverImage', 'experience', 'qualification', 'established', 'createdAt', 'updatedAt', 'role', 'password', 'confirmpassword', 'confirmPassword', 'confirm_password'];
+            const skipFields = ['id', 'uid', 'email', 'phonenumber', 'address', 'location', 'institutionname', 'fullname', 'name', 'type', 'subjects', 'teachingsubjects', 'description', 'about', 'bio', 'introduction', 'profileImage', 'profileimage', 'profilepicurl', 'profilepic', 'photoUrl', 'photourl', 'photo', 'coverImage', 'coverimage', 'experience', 'qualification', 'established', 'createdAt', 'updatedAt', 'role', 'password', 'confirmpassword', 'confirmPassword', 'confirm_password', 'profile_pic', 'profile_pic_url', 'profile_url'];
             const keyLower = key.toLowerCase();
             if (skipFields.includes(keyLower) || keyLower.includes('password') || keyLower.includes('created') || keyLower.includes('updated') || !profileData[key] || typeof profileData[key] === 'object') {
               return null;
